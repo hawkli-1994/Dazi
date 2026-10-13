@@ -53,6 +53,7 @@
 | 文档 | 内容 |
 | --- | --- |
 | [AGENTS.md](AGENTS.md) | 给编码 Agent 和贡献者的仓库指南（`CLAUDE.md` 指向它） |
+| [DESIGN.md](DESIGN.md) | 设计格调与视觉规范 |
 | [docs/tech-stack.md](docs/tech-stack.md) | 技术选型与取舍 |
 | [docs/architecture.md](docs/architecture.md) | 技术方案：进程结构、数据模型、关键流程、里程碑 |
 
