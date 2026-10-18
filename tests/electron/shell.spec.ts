@@ -207,6 +207,21 @@ test('a run interrupted in the actual utility process resumes without duplicate 
         { timeout: 30_000 },
       )
       .toBe(false);
+    await expect
+      .poll(async () => {
+        const view = await latestView(desktop.page, created.workId);
+        const final = view?.entries
+          .flatMap((entry) => entry.model ?? [])
+          .filter((message) => message.role === 'assistant')
+          .at(-1);
+        return final?.role === 'assistant'
+          ? final.content
+              .filter((block) => block.type === 'text')
+              .map((block) => block.text)
+              .join('')
+          : '';
+      })
+      .toBe('Deterministic recoverable stream. '.repeat(60));
     await desktop.page.screenshot({ path: 'test-results/electron/recovered-run.png' });
     await expect
       .poll(async () => {

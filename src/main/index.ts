@@ -15,6 +15,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { DesktopChannel, externalWebUrl, HostControl } from '../shared/rpc/desktop';
 import { HostSupervisor } from './host-supervisor';
 import { createTray, showWindow } from './native-ui';
+import { isSupersededLoadAbort, navigationErrorCode } from './navigation';
 import {
   allowsRendererRequest,
   AppScheme,
@@ -48,7 +49,13 @@ let quitAllowed = false;
 let selectingFolder = false;
 let documentEpoch = 0;
 
+function testDiagnostic(event: string, details: Record<string, unknown> = {}): void {
+  if (testProvider) console.info(`[DesktopTest] ${event} ${JSON.stringify(details)}`);
+}
+
 function createWindow(): BrowserWindow {
+  let navigations = 0;
+  let latestNavigation = '';
   const created = new BrowserWindow({
     width: 1280,
     height: 860,
@@ -78,11 +85,26 @@ function createWindow(): BrowserWindow {
   created.webContents.on('will-attach-webview', (event) => event.preventDefault());
   created.webContents.on('did-start-navigation', (event) => {
     if (event.isMainFrame && !event.isSameDocument) {
+      navigations++;
+      latestNavigation = event.url;
       documentEpoch++;
+      testDiagnostic('navigation-started', { navigations, url: event.url });
       supervisor?.detachRenderer();
     }
   });
-  created.webContents.on('render-process-gone', () => supervisor?.detachRenderer());
+  created.webContents.on('render-process-gone', (_event, details) => {
+    testDiagnostic('renderer-exited', { reason: details.reason, exitCode: details.exitCode });
+    supervisor?.detachRenderer();
+  });
+  if (testProvider) {
+    created.webContents.on('did-finish-load', () => testDiagnostic('navigation-finished'));
+    created.webContents.on('did-fail-load', (_event, code, description, url, mainFrame) => {
+      testDiagnostic('navigation-failed', { code, description, url, mainFrame });
+    });
+    created.webContents.on('preload-error', (_event, path, error) => {
+      testDiagnostic('preload-failed', { path, message: error.message, stack: error.stack });
+    });
+  }
   created.on('close', (event) => {
     if (!quitting && tray) {
       event.preventDefault();
@@ -90,11 +112,25 @@ function createWindow(): BrowserWindow {
     }
   });
   created.on('closed', () => {
+    testDiagnostic('window-closed');
     supervisor?.detachRenderer();
     window = null;
   });
   created.once('ready-to-show', () => created.show());
-  void created.loadURL(entry).catch(() => {
+  const initialNavigation = navigations + 1;
+  void created.loadURL(entry).catch((error: unknown) => {
+    testDiagnostic('initial-load-rejected', {
+      code: navigationErrorCode(error),
+      initialNavigation,
+      navigations,
+      latestNavigation,
+    });
+    if (
+      quitting ||
+      created.isDestroyed() ||
+      isSupersededLoadAbort(error, initialNavigation, navigations, latestNavigation, entry)
+    )
+      return;
     console.error('[Desktop] The application window could not load.');
     app.quit();
   });
@@ -139,8 +175,8 @@ async function startDesktop(): Promise<void> {
   });
 
   supervisor = new HostSupervisor({
-    spawn: () =>
-      utilityProcess.fork(
+    spawn: () => {
+      const child = utilityProcess.fork(
         join(root, 'dist-desktop/host/index.js'),
         [
           '--storage-path',
@@ -148,7 +184,13 @@ async function startDesktop(): Promise<void> {
           ...(testProvider ? ['--test-provider'] : []),
         ],
         { serviceName: 'Dazi Agent Host', stdio: 'inherit' },
-      ),
+      );
+      if (testProvider) {
+        child.once('spawn', () => testDiagnostic('host-spawned', { pid: child.pid }));
+        child.once('exit', (code) => testDiagnostic('host-exited', { code }));
+      }
+      return child;
+    },
     connect: (child, generation) => {
       const contents = window?.webContents;
       if (!contents || contents.isDestroyed() || !isTrustedDocument(contents.getURL(), entry)) {
@@ -170,6 +212,7 @@ async function startDesktop(): Promise<void> {
       }
     },
     status: (status) => {
+      testDiagnostic('host-status', { ...status });
       const contents = window?.webContents;
       if (contents && !contents.isDestroyed() && isTrustedDocument(contents.getURL(), entry)) {
         contents.mainFrame.send(DesktopChannel.Status, status);
@@ -235,6 +278,7 @@ if (!app.requestSingleInstanceLock()) {
     if (!tray) app.quit();
   });
   app.on('before-quit', (event) => {
+    testDiagnostic('before-quit', { quitAllowed, quitting });
     if (quitAllowed) return;
     event.preventDefault();
     if (quitting) return;
@@ -246,6 +290,17 @@ if (!app.requestSingleInstanceLock()) {
       app.quit();
     });
   });
+  if (testProvider) {
+    app.on('child-process-gone', (_event, details) => {
+      testDiagnostic('child-process-exited', {
+        type: details.type,
+        reason: details.reason,
+        exitCode: details.exitCode,
+        name: details.name,
+      });
+    });
+    app.on('quit', (_event, code) => testDiagnostic('app-quit', { code }));
+  }
   void startDesktop().catch(() => {
     console.error('[Desktop] Desktop initialization failed.');
     app.quit();

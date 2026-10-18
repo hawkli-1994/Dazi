@@ -6,6 +6,7 @@ import { applyImmutable } from '@earendil-works/chord/delta';
 import type { ConversationView } from '@earendil-works/pi-durable';
 import { DesktopChannel } from '../../src/shared/rpc/desktop';
 import { Wire, type CommandMap, type HostEvent } from '../../src/shared/rpc/protocol';
+import { fixtureDiagnostics } from './diagnostics';
 
 type SmokeState = {
   generation: number;
@@ -21,91 +22,138 @@ export async function launchDesktop(initialRoute?: string): Promise<{
   cleanup(): Promise<void>;
 }> {
   const directory = await mkdtemp(join(tmpdir(), 'dazi-electron-'));
-  let application: ElectronApplication;
+  const diagnostics = fixtureDiagnostics();
+  let application: ElectronApplication | undefined;
+  const cleanup = async () => {
+    try {
+      await application?.close();
+    } finally {
+      await diagnostics.save();
+      await rm(directory, { recursive: true, force: true });
+    }
+  };
   try {
     application = await _electron.launch({
       args: [resolve('.'), '--test-provider', `--dazi-user-data=${directory}`],
       env: {
         ...Object.fromEntries(
-          Object.entries(process.env).filter(
-            (entry): entry is [string, string] =>
-              entry[1] !== undefined && entry[0] !== 'ELECTRON_RUN_AS_NODE',
+          // Do not inherit provider credentials, tokens, NODE_OPTIONS, or arbitrary
+          // app configuration into a fixture whose diagnostics are CI artifacts.
+          [
+            'PATH',
+            'HOME',
+            'TMPDIR',
+            'TMP',
+            'TEMP',
+            'DISPLAY',
+            'XAUTHORITY',
+            'LANG',
+            'LC_ALL',
+            'CI',
+            'LD_LIBRARY_PATH',
+            'DBUS_SESSION_BUS_ADDRESS',
+            'XDG_RUNTIME_DIR',
+          ].flatMap((name) =>
+            process.env[name] === undefined ? [] : [[name, process.env[name]!]],
           ),
         ),
         DAZI_RENDERER_URL: '',
         XDG_CURRENT_DESKTOP: '',
       },
     });
+    diagnostics.application(application);
+    const page = await application.firstWindow();
+    diagnostics.page(page);
+    // firstWindow() only waits for a window event, not its initial navigation.
+    // Interrupting Main's loadURL before did-finish-load can reject that promise.
+    await page.waitForURL(/^dazi:\/\/app\/index\.html/, { waitUntil: 'load' });
+    await expect(page.getByTestId('app-shell')).toBeVisible();
+    diagnostics.record('fixture', 'Initial page and UI finished loading before reload.');
+    await page.addInitScript(
+      ({
+        portType,
+        snapshotType,
+        deltaType,
+        ackType,
+        catalogType,
+        documentsType,
+        noticeAckType,
+        initialRoute,
+      }) => {
+        if (initialRoute) history.replaceState(null, '', `#${initialRoute}`);
+        const state: SmokeState = { generation: 0, port: null, messages: [] };
+        (window as SmokeWindow).electronSmoke = state;
+        window.addEventListener('message', (event: MessageEvent<unknown>) => {
+          if (
+            event.source !== window ||
+            event.origin !== window.location.origin ||
+            event.ports.length !== 1
+          )
+            return;
+          const value = event.data;
+          if (
+            typeof value !== 'object' ||
+            value === null ||
+            !('type' in value) ||
+            value.type !== portType ||
+            !('generation' in value) ||
+            typeof value.generation !== 'number'
+          )
+            return;
+          state.generation = value.generation;
+          state.port = event.ports[0];
+          state.port.addEventListener('message', (message: MessageEvent<unknown>) => {
+            state.messages.push(message.data);
+            const data = message.data;
+            if (typeof data !== 'object' || data === null || !('type' in data)) return;
+            if ((data.type === catalogType || data.type === documentsType) && 'noticeId' in data) {
+              state.port?.postMessage({ type: noticeAckType, noticeId: data.noticeId });
+            }
+            // The test subscription consumes the same bounded stream as a real UI.
+            if (
+              (data.type === snapshotType || data.type === deltaType) &&
+              'subscriptionId' in data &&
+              'sequence' in data
+            ) {
+              state.port?.postMessage({
+                type: ackType,
+                subscriptionId: data.subscriptionId,
+                sequence: data.sequence,
+              });
+            }
+          });
+          state.port.start();
+        });
+      },
+      {
+        portType: DesktopChannel.Port,
+        snapshotType: Wire.Snapshot,
+        deltaType: Wire.Delta,
+        ackType: Wire.Ack,
+        catalogType: Wire.Catalog,
+        documentsType: Wire.Documents,
+        noticeAckType: Wire.NoticeAck,
+        initialRoute,
+      },
+    );
+    // Installing the observer before a reload also exercises fresh document handshakes.
+    await page.reload();
+    await page.evaluate(() => window.daziDesktop?.connectHost());
+    await expect.poll(() => generation(page), { timeout: 30_000 }).toBeGreaterThan(0);
+    return {
+      application,
+      page,
+      directory,
+      cleanup,
+    };
   } catch (error) {
-    await rm(directory, { recursive: true, force: true });
+    diagnostics.record(
+      'setup-failed',
+      error instanceof Error ? (error.stack ?? error.message) : String(error),
+    );
+    await cleanup();
     throw error;
   }
-  const page = await application.firstWindow();
-  await page.addInitScript(
-    ({ portType, snapshotType, deltaType, ackType, initialRoute }) => {
-      if (initialRoute) history.replaceState(null, '', `#${initialRoute}`);
-      const state: SmokeState = { generation: 0, port: null, messages: [] };
-      (window as SmokeWindow).electronSmoke = state;
-      window.addEventListener('message', (event: MessageEvent<unknown>) => {
-        if (
-          event.source !== window ||
-          event.origin !== window.location.origin ||
-          event.ports.length !== 1
-        )
-          return;
-        const value = event.data;
-        if (
-          typeof value !== 'object' ||
-          value === null ||
-          !('type' in value) ||
-          value.type !== portType ||
-          !('generation' in value) ||
-          typeof value.generation !== 'number'
-        )
-          return;
-        state.generation = value.generation;
-        state.port = event.ports[0];
-        state.port.addEventListener('message', (message: MessageEvent<unknown>) => {
-          state.messages.push(message.data);
-          const data = message.data;
-          if (typeof data !== 'object' || data === null || !('type' in data)) return;
-          // The test subscription consumes the same bounded stream as a real UI.
-          if (
-            (data.type === snapshotType || data.type === deltaType) &&
-            'subscriptionId' in data &&
-            'sequence' in data
-          ) {
-            state.port?.postMessage({
-              type: ackType,
-              subscriptionId: data.subscriptionId,
-              sequence: data.sequence,
-            });
-          }
-        });
-        state.port.start();
-      });
-    },
-    {
-      portType: DesktopChannel.Port,
-      snapshotType: Wire.Snapshot,
-      deltaType: Wire.Delta,
-      ackType: Wire.Ack,
-      initialRoute,
-    },
-  );
-  // Installing the observer before a reload also exercises fresh document handshakes.
-  await page.reload();
-  await page.evaluate(() => window.daziDesktop?.connectHost());
-  await expect.poll(() => generation(page), { timeout: 30_000 }).toBeGreaterThan(0);
-  return {
-    application,
-    page,
-    directory,
-    cleanup: async () => {
-      await application.close();
-      await rm(directory, { recursive: true, force: true });
-    },
-  };
 }
 
 export async function generation(page: Page): Promise<number> {

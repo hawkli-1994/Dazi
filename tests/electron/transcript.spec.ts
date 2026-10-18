@@ -65,9 +65,9 @@ for (const variant of cases) {
         timeout: 30_000,
       });
       await expect(tool.locator('[data-state="success"]')).toBeVisible();
-      await expect(page.locator('.agent-transcript')).toContainText(
-        'Deterministic recoverable stream.',
-      );
+      await expect(
+        page.locator('.agent-markdown').filter({ hasText: 'Deterministic recoverable stream.' }),
+      ).toHaveText('Deterministic recoverable stream. '.repeat(60).trim());
       await expect(page.locator('.agent-user-text').filter({ hasText: prompt })).toHaveCount(1);
       await expect(page.locator('html')).toHaveAttribute('data-theme', variant.colorScheme);
       await capture(page, info, `${variant.name}-05-final-transcript`);
@@ -77,9 +77,9 @@ for (const variant of cases) {
       await expect(page.locator('.agent-tool [data-state="success"]')).toBeVisible({
         timeout: 15_000,
       });
-      await expect(page.locator('.agent-transcript')).toContainText(
-        'Deterministic recoverable stream.',
-      );
+      await expect(
+        page.locator('.agent-markdown').filter({ hasText: 'Deterministic recoverable stream.' }),
+      ).toHaveText('Deterministic recoverable stream. '.repeat(60).trim());
       await expect(page.locator('.agent-user-text').filter({ hasText: prompt })).toHaveCount(1);
       await expect(page.locator('.agent-reasoning')).not.toHaveCount(0);
       await capture(page, info, `${variant.name}-06-restored-transcript`);
