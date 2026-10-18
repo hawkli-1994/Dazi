@@ -4,6 +4,8 @@ import { Title, Muted } from '../../shared/components/ui/typography';
 import { t, type Language } from '../i18n';
 import { demoStore } from '../state';
 import { clearDrafts, navigate } from '../components/common';
+import { isDesktop } from '../runtime/client';
+import { rt } from '../i18n/runtime';
 export const Theme = { Light: 'light', Dark: 'dark', System: 'system' } as const;
 export type Theme = (typeof Theme)[keyof typeof Theme];
 export function Settings({
@@ -57,26 +59,28 @@ export function Settings({
           </select>
         </label>
       </section>
-      <section className="setting-row">
-        <div>
-          <h2>{t(language, 'demoSettings')}</h2>
-          <Muted>{t(language, 'demoSettingsDescription')}</Muted>
-        </div>
-        <div className="flex flex-col gap-3 items-start">
-          <Button
-            data-testid="load-demo"
-            onClick={() => {
-              demoStore.loadFixtures();
-              navigate('/');
-            }}
-          >
-            {t(language, 'loadDemo')}
-          </Button>
-          <Button variant="ghost" data-testid="reset-demo" onClick={() => setConfirmReset(true)}>
-            {t(language, 'emptyDemo')}
-          </Button>
-        </div>
-      </section>
+      {!isDesktop() && (
+        <section className="setting-row">
+          <div>
+            <h2>{t(language, 'demoSettings')}</h2>
+            <Muted>{t(language, 'demoSettingsDescription')}</Muted>
+          </div>
+          <div className="flex flex-col gap-3 items-start">
+            <Button
+              data-testid="load-demo"
+              onClick={() => {
+                demoStore.loadFixtures();
+                navigate('/');
+              }}
+            >
+              {t(language, 'loadDemo')}
+            </Button>
+            <Button variant="ghost" data-testid="reset-demo" onClick={() => setConfirmReset(true)}>
+              {t(language, 'emptyDemo')}
+            </Button>
+          </div>
+        </section>
+      )}
       {confirmReset && (
         <section className="decision mt-6" role="alert">
           <h3>{t(language, 'resetDemoTitle')}</h3>
@@ -102,7 +106,7 @@ export function Settings({
           <h2>{t(language, 'about')}</h2>
           <Muted>{t(language, 'version')}</Muted>
         </div>
-        <Muted>{t(language, 'demoDescription')}</Muted>
+        <Muted>{isDesktop() ? rt(language, 'localStorage') : t(language, 'demoDescription')}</Muted>
       </section>
     </main>
   );

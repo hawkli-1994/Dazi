@@ -5,6 +5,11 @@
   .nav {
     margin-right: 0;
   }
+  .app-shell:has(.work-page) .nav {
+    padding-inline: var(--space-3);
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+  }
   .work-layout {
     grid-template-columns: 1fr;
   }

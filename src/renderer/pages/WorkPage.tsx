@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { runtimeErrorText } from '../i18n/errors';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { Button } from '../../shared/components/ui/button';
 import { Title, Muted } from '../../shared/components/ui/typography';
@@ -11,7 +12,21 @@ import { Composer, DecisionView, Status, navigate } from '../components/common';
 import { WorkContext } from '../components/WorkContext';
 import { t, localize, type Language } from '../i18n';
 import { demoStore, WorkStatus, MessageDelivery, MessageRole, type Work } from '../state';
+import { AgentTranscript } from '../components/AgentTranscript';
+import { isDesktop, runtimeClient } from '../runtime/client';
+import { workActions } from '../runtime/actions';
 export function WorkPage({ work, language }: { work: Work | undefined; language: Language }) {
+  const native = isDesktop();
+  const runtime = useSyncExternalStore(
+    runtimeClient.subscribe,
+    runtimeClient.getSnapshot,
+    runtimeClient.getSnapshot,
+  );
+  const [actionError, setActionError] = useState('');
+  const [stopping, setStopping] = useState(false);
+  useEffect(() => {
+    if (native && work?.id) void runtimeClient.openWork(work.id);
+  }, [native, work?.id]);
   const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 1100px)').matches);
   const [showRecord, setShowRecord] = useState(
     () => !window.matchMedia('(max-width: 1100px)').matches,
@@ -57,7 +72,13 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
       </div>
       <div className={showRecord && !narrow ? 'work-layout' : 'work-layout work-layout-single'}>
         <section className="conversation">
-          {work.messages.length ? (
+          {native ? (
+            <AgentTranscript
+              view={runtime.workId === work.id ? runtime.view : null}
+              language={language}
+              disconnected={!runtime.connected}
+            />
+          ) : work.messages.length ? (
             work.messages.map((message) => (
               <Message key={message.id} from={message.role}>
                 <MessageContent>
@@ -99,18 +120,42 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
             />
           ))}
           <div role="status" className="flex items-center justify-between gap-4">
+            {actionError && (
+              <p className="error" role="alert">
+                {actionError}
+              </p>
+            )}
             <p className={work.status === WorkStatus.Error ? 'error' : 'muted'}>
               {work.status === WorkStatus.Queued
                 ? t(language, 'queuedNotice')
-                : work.status === WorkStatus.Paused
+                : work.status === WorkStatus.Paused && !native
                   ? t(language, 'stoppedNotice')
-                  : work.status === WorkStatus.Error
+                  : work.status === WorkStatus.Error && !native
                     ? t(language, 'networkError')
                     : localize(language, work.summary)}
             </p>
-            {work.status === WorkStatus.Running || work.status === WorkStatus.Queued ? (
-              <Button onClick={() => demoStore.abort(work.id)}>{t(language, 'stop')}</Button>
-            ) : work.status === WorkStatus.Error || work.status === WorkStatus.Paused ? (
+            {work.status === WorkStatus.Running ||
+            work.status === WorkStatus.Queued ||
+            (native && work.status === WorkStatus.Waiting) ? (
+              <Button
+                disabled={stopping}
+                onClick={async () => {
+                  setStopping(true);
+                  setActionError('');
+                  try {
+                    await workActions.abort(work.id);
+                  } catch (cause) {
+                    setActionError(runtimeErrorText(language, cause));
+                  } finally {
+                    setStopping(false);
+                  }
+                }}
+              >
+                {t(language, 'stop')}
+                {stopping ? '…' : ''}
+              </Button>
+            ) : !native &&
+              (work.status === WorkStatus.Error || work.status === WorkStatus.Paused) ? (
               <Button onClick={() => demoStore.retry(work.id)}>{t(language, 'retry')}</Button>
             ) : null}
           </div>
@@ -118,8 +163,8 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
             <Composer
               draftKey={work.id}
               language={language}
-              disabled={work.status === WorkStatus.Archived}
-              onSubmit={(text) => demoStore.submit(work.id, text)}
+              disabled={work.status === WorkStatus.Archived || (native && !runtime.connected)}
+              onSubmit={(text) => workActions.submit(work.id, text)}
             />
             <Muted className="mt-3">
               {t(language, work.status === WorkStatus.Archived ? 'archivedComposer' : 'sendHint')}
@@ -131,9 +176,13 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
                 <div className="flex gap-3">
                   <Button
                     variant="danger"
-                    onClick={() => {
-                      demoStore.archive(work.id);
-                      setConfirmArchive(false);
+                    onClick={async () => {
+                      try {
+                        await workActions.archive(work.id);
+                        setConfirmArchive(false);
+                      } catch (cause) {
+                        setActionError(runtimeErrorText(language, cause));
+                      }
                     }}
                   >
                     {t(language, 'archive')}

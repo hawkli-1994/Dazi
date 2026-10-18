@@ -1,8 +1,11 @@
+import { runtimeErrorText } from '../i18n/errors';
 import { useState } from 'react';
 import { ArrowUpRight, Send, Circle, Check, AlertCircle, Pause, Clock } from 'lucide-react';
 import { Button } from '../../shared/components/ui/button';
 import { t, localize, type Language, type TranslationKey } from '../i18n';
-import { demoStore, WorkStatus, DecisionStatus, type Decision } from '../state';
+import { WorkStatus, DecisionStatus, type Decision } from '../state';
+import { workActions } from '../runtime/actions';
+import { isDesktop } from '../runtime/client';
 export function navigate(path: string) {
   window.location.hash = path;
 }
@@ -45,17 +48,27 @@ export function Composer({
   draftKey = 'welcome',
 }: {
   language: Language;
-  onSubmit: (value: string) => void;
+  onSubmit: (value: string) => void | Promise<unknown>;
   welcome?: boolean;
   disabled?: boolean;
   draftKey?: string;
 }) {
   const [value, setValue] = useState(() => drafts.get(draftKey) ?? '');
-  function submit() {
-    if (!value.trim() || disabled) return;
-    onSubmit(value.trim());
-    drafts.delete(draftKey);
-    setValue('');
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  async function submit() {
+    if (!value.trim() || disabled || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      await onSubmit(value.trim());
+      drafts.delete(draftKey);
+      setValue('');
+    } catch (cause) {
+      setError(runtimeErrorText(language, cause));
+    } finally {
+      setSending(false);
+    }
   }
   return (
     <form
@@ -65,13 +78,18 @@ export function Composer({
         submit();
       }}
     >
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       <textarea
         data-testid="work-composer"
         rows={1}
         aria-label={t(language, welcome ? 'welcomePlaceholder' : 'composerPlaceholder')}
         placeholder={t(language, welcome ? 'welcomePlaceholder' : 'composerPlaceholder')}
         value={value}
-        disabled={disabled}
+        disabled={disabled || sending}
         onChange={(event) => {
           setValue(event.target.value);
           drafts.set(draftKey, event.target.value);
@@ -94,7 +112,7 @@ export function Composer({
         type="submit"
         data-testid="send-message"
         aria-label={t(language, 'send')}
-        disabled={disabled || !value.trim()}
+        disabled={disabled || sending || !value.trim()}
       >
         <Send aria-hidden="true" />
       </Button>
@@ -120,9 +138,27 @@ export function DecisionView({
   language: Language;
   readOnly?: boolean;
 }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  async function decide(result: typeof DecisionStatus.Approved | typeof DecisionStatus.Declined) {
+    setBusy(true);
+    setError('');
+    try {
+      await workActions.resolveDecision(workId, decision.id, result);
+    } catch (cause) {
+      setError(runtimeErrorText(language, cause));
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <section className="decision" data-testid="decision">
       <h3>{localize(language, decision.title)}</h3>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       {decision.status === DecisionStatus.Pending ? (
         <>
           <p className="reading">{localize(language, decision.reason)}</p>
@@ -133,23 +169,19 @@ export function DecisionView({
             <summary>{t(language, 'decisionPreview')}</summary>
             <pre className="preview">{localize(language, decision.preview)}</pre>
           </details>
-          <p className="field-hint my-4">{t(language, 'decisionDemoHint')}</p>
+          {!isDesktop() && <p className="field-hint my-4">{t(language, 'decisionDemoHint')}</p>}
           <div className="flex flex-wrap gap-3">
             <Button
               variant="attention"
-              disabled={readOnly}
-              onClick={() =>
-                demoStore.resolveDecision(workId, decision.id, DecisionStatus.Approved)
-              }
+              disabled={readOnly || busy}
+              onClick={() => decide(DecisionStatus.Approved)}
             >
               {localize(language, decision.approveLabel)}
             </Button>
             <Button
               variant="ghost"
-              disabled={readOnly}
-              onClick={() =>
-                demoStore.resolveDecision(workId, decision.id, DecisionStatus.Declined)
-              }
+              disabled={readOnly || busy}
+              onClick={() => decide(DecisionStatus.Declined)}
             >
               {t(language, 'decline')}
             </Button>

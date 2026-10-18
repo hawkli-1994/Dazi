@@ -21,7 +21,7 @@
 
 ## 命令
 
-UI-first 脚手架已建立：`bun run dev`、`bun run build`、`bun run typecheck`、`bun run lint`、`bun run format:check`、`bun run test`、`bun run test:e2e`。尚未接入 Electron/Agent 或打包。约定：
+UI 与桌面接入脚手架已建立：`bun run dev`、`bun run build`、`bun run typecheck`、`bun run lint`、`bun run format:check`、`bun run test`、`bun run test:e2e`、`bun run build:desktop`、`bun run desktop`、`bun run test:electron`。Electron/Agent 已接入；签名打包与发布尚未启用。约定：
 
 - 包管理只用 Bun（`bun install`、`bun.lock`）；脚本可用 npm 运行。
 - Node 版本与 Electron 内置 Node 保持一致，且 ≥ 22.19。
@@ -48,7 +48,7 @@ UI-first 脚手架已建立：`bun run dev`、`bun run build`、`bun run typeche
 
 - **一套主题**，浅色 / 深色 / 跟随系统。不做主题包、外观设置或换肤。
 - 视觉值（颜色、字号、圆角、阴影、间距档位）只存在于 `src/renderer/theme/` 的 CSS 变量 token 和共享组件的 variant 中。页面和业务组件只写布局类（flex、grid、gap、宽高约束、滚动）。
-- 组件只从这些地方来：基础控件用 shadcn/ui，Agent 相关展示（消息、推理、工具、附件、代码）用 ai-elements，图标用 `lucide-react`。先找现成的，再考虑扩展 variant，最后才新建。
+- 保留已验收 UI；基础控件用 shadcn/ui（Base UI），流式 Markdown 使用 Streamdown，消息/推理/工具状态直接消费 Pi Durable 原生结构化视图。现有 ai-elements 组合组件可沿用，但不是强制来源。图标用 `lucide-react`。先复用现成组件，再扩展 variant，最后才新建。
 - 结构组合用 Tailwind `className` + `cn()`。
 - 采用 DESIGN.md 的原创水彩边缘插画与暖纸阅读面；不加光晕、彩色卡片、嵌套卡片或多余动效；动效遵守 `prefers-reduced-motion`。
 - 每个界面必须在实际渲染中检查：浅色 / 深色、窄窗口、长文本、空状态、加载与错误、键盘焦点。
