@@ -1,13 +1,17 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '../../shared/components/ui/button';
 import { Title, Muted } from '../../shared/components/ui/typography';
 import { t, type Language } from '../i18n';
-import { demoStore } from '../state';
+import { workActions } from '../runtime/actions';
+import { rt } from '../i18n/runtime';
+import { isDesktop } from '../runtime/client';
 import { navigate } from '../components/common';
 export function NewWork({ language, initialGoal }: { language: Language; initialGoal: string }) {
   const [goal, setGoal] = useState(initialGoal);
   const [directory, setDirectory] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const requestId = useRef(crypto.randomUUID());
   return (
     <main className="page page-narrow">
       <Title>{t(language, 'createWorkTitle')}</Title>
@@ -15,7 +19,7 @@ export function NewWork({ language, initialGoal }: { language: Language; initial
       <form
         className="flex flex-col gap-8 mt-12"
         noValidate
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
           if (!goal.trim()) {
             setError(t(language, 'goalRequired'));
@@ -25,7 +29,18 @@ export function NewWork({ language, initialGoal }: { language: Language; initial
             setError(t(language, 'directoryRequired'));
             return;
           }
-          navigate(`/work/${demoStore.createWork(goal.trim(), directory.trim())}`);
+          if (busy) return;
+          setBusy(true);
+          setError('');
+          try {
+            navigate(
+              `/work/${await workActions.createWork(goal.trim(), directory.trim(), requestId.current)}`,
+            );
+          } catch (cause) {
+            setError(cause instanceof Error ? cause.message : t(language, 'networkError'));
+          } finally {
+            setBusy(false);
+          }
         }}
       >
         <div className="field">
@@ -34,8 +49,12 @@ export function NewWork({ language, initialGoal }: { language: Language; initial
             className="input"
             id="goal"
             data-testid="new-work-goal"
+            disabled={busy}
             value={goal}
-            onChange={(event) => setGoal(event.target.value)}
+            onChange={(event) => {
+              setGoal(event.target.value);
+              requestId.current = crypto.randomUUID();
+            }}
             placeholder={t(language, 'workGoalPlaceholder')}
             required
             autoFocus
@@ -47,12 +66,30 @@ export function NewWork({ language, initialGoal }: { language: Language; initial
             className="input"
             id="directory"
             data-testid="new-work-directory"
+            disabled={busy}
             value={directory}
-            onChange={(event) => setDirectory(event.target.value)}
+            onChange={(event) => {
+              setDirectory(event.target.value);
+              requestId.current = crypto.randomUUID();
+            }}
             placeholder={t(language, 'workDirectoryPlaceholder')}
             required
             aria-describedby="directory-hint"
           />
+          {isDesktop() && (
+            <Button
+              disabled={busy}
+              onClick={async () => {
+                const path = await window.daziDesktop?.selectFolder();
+                if (path) {
+                  setDirectory(path);
+                  requestId.current = crypto.randomUUID();
+                }
+              }}
+            >
+              {rt(language, 'chooseFolder')}
+            </Button>
+          )}
           <p className="field-hint" id="directory-hint">
             {t(language, 'workDirectoryHint')}
           </p>
@@ -63,10 +100,10 @@ export function NewWork({ language, initialGoal }: { language: Language; initial
           </p>
         )}
         <div className="flex gap-3">
-          <Button type="submit" variant="primary" data-testid="create-work">
+          <Button type="submit" variant="primary" data-testid="create-work" disabled={busy}>
             {t(language, 'createWorkAction')}
           </Button>
-          <Button variant="ghost" onClick={() => navigate('/')}>
+          <Button disabled={busy} variant="ghost" onClick={() => navigate('/')}>
             {t(language, 'cancel')}
           </Button>
         </div>

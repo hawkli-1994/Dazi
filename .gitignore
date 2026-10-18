@@ -4,3 +4,10 @@ playwright-report/
 test-results/
 coverage/
 .DS_Store
+
+dist-desktop/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+tests/electron/test-results/

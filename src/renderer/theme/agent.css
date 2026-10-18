@@ -1,0 +1,196 @@
+.agent-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  width: 100%;
+  max-width: var(--reading-width);
+  min-width: 0;
+}
+.agent-message {
+  min-width: 0;
+}
+.agent-markdown,
+.agent-user-text {
+  min-width: 0;
+  color: var(--text);
+  font-family: var(--font-reading);
+  font-size: var(--text-reading);
+  line-height: 1.88;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.agent-user-text {
+  white-space: pre-wrap;
+}
+.agent-markdown > * + * {
+  margin-top: var(--space-4);
+}
+.agent-markdown :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: var(--space-6);
+  font-size: var(--text-lg);
+  font-weight: 500;
+  line-height: 1.45;
+}
+.agent-markdown :is(strong, b) {
+  font-weight: 500;
+}
+.agent-markdown em {
+  font-style: normal;
+  font-weight: 500;
+}
+.agent-markdown :is(ul, ol) {
+  padding-left: var(--space-6);
+}
+.agent-markdown ul {
+  list-style: disc;
+}
+.agent-markdown ol {
+  list-style: decimal;
+}
+.agent-markdown li + li {
+  margin-top: var(--space-2);
+}
+.agent-markdown a {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: var(--space-1);
+}
+.agent-markdown blockquote {
+  border-left: 1px solid var(--border-strong);
+  padding-left: var(--space-4);
+  color: var(--text-secondary);
+}
+.agent-markdown hr {
+  margin: var(--space-6) 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.agent-markdown :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  background: var(--surface-muted);
+  padding-inline: var(--space-1);
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+}
+.agent-code {
+  max-width: 100%;
+  margin-block: var(--space-3);
+  padding: var(--space-4);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  background: var(--surface-muted);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.8;
+}
+.agent-code code {
+  font: inherit;
+  color: inherit;
+}
+.agent-table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.agent-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+.agent-markdown :is(th, td) {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+.agent-markdown th {
+  font-weight: 500;
+}
+.agent-disclosure {
+  min-width: 0;
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.agent-disclosure > summary {
+  cursor: pointer;
+  line-height: 1.54;
+}
+.agent-disclosure-summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+  list-style: none;
+}
+.agent-disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+.agent-disclosure-summary svg {
+  flex: 0 0 auto;
+  align-self: center;
+  width: var(--space-4);
+  height: var(--space-4);
+  stroke-width: 1.75;
+}
+.agent-disclosure[open] > .agent-disclosure-summary .agent-disclosure-chevron {
+  transform: rotate(90deg);
+}
+.agent-tool-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.agent-tool-status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+  font-size: var(--text-xs);
+}
+.agent-tool-status[data-state='success'] {
+  color: var(--success);
+}
+.agent-tool-status[data-state='error'],
+.agent-tool-status[data-state='interrupted'] {
+  color: var(--danger);
+}
+.agent-disclosure-content {
+  min-width: 0;
+  padding-top: var(--space-4);
+  padding-left: var(--space-6);
+}
+.agent-detail-section + .agent-detail-section,
+.agent-response-notice {
+  margin-top: var(--space-4);
+}
+.agent-detail-label,
+.agent-note,
+.agent-image-notice {
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: 1.54;
+  overflow-wrap: anywhere;
+}
+.agent-note + .agent-markdown {
+  margin-top: var(--space-3);
+}
+.agent-connection-notice {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: var(--space-4);
+}
+.agent-local-image {
+  display: block;
+  max-width: 100%;
+  max-height: var(--reading-width);
+  object-fit: contain;
+  margin-top: var(--space-3);
+}

@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v6
         with:
-          node-version: '24.19.0'
+          node-version: '24.22.0'
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: package.json
@@ -47,6 +47,12 @@ jobs:
           fc-match 'Noto Serif CJK SC'
       - name: Run rendered UI checks
         run: bunx --no-install playwright test
+      - name: Build desktop shell
+        run: bun run build:desktop
+      - name: Install Electron runtime
+        run: node node_modules/electron/install.js
+      - name: Exercise real Electron Host and persistence
+        run: xvfb-run -a npm run test:electron
       - name: Upload screenshots, traces, and test reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4

@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { Button } from '../../shared/components/ui/button';
 import { Muted } from '../../shared/components/ui/typography';
 import { t, localize, type Language, type TranslationKey } from '../i18n';
-import { demoStore, WorkStatus, ScheduleFrequency, type Work, type DossierEntry } from '../state';
+import { WorkStatus, ScheduleFrequency, type Work, type DossierEntry } from '../state';
+import { workActions } from '../runtime/actions';
+import { rt } from '../i18n/runtime';
+import { isDesktop } from '../runtime/client';
 const Tab = {
   Dossier: 'dossier',
   Artifacts: 'artifacts',
@@ -19,20 +22,36 @@ function DossierRow({
   language: Language;
 }) {
   const [editing, setEditing] = useState(false);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   const [value, setValue] = useState(localize(language, entry.content));
   return (
     <div className="context-item">
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
       {editing && work.status !== WorkStatus.Archived ? (
         <form
           className="flex flex-col gap-3"
-          onSubmit={(event) => {
+          onSubmit={async (event) => {
             event.preventDefault();
-            if (value.trim()) {
-              if (
-                demoStore.updateDossier(work.id, entry.id, value) ||
-                localize(language, entry.content) === value.trim()
-              )
-                setEditing(false);
+            if (busy) return;
+            setBusy(true);
+            setError('');
+            try {
+              if (value.trim()) {
+                if (
+                  (await workActions.updateDossier(work.id, entry.id, value)) ||
+                  localize(language, entry.content) === value.trim()
+                )
+                  setEditing(false);
+              }
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : t(language, 'networkError'));
+            } finally {
+              setBusy(false);
             }
           }}
         >
@@ -40,16 +59,17 @@ function DossierRow({
             <span>{t(language, 'editDossier')}</span>
             <textarea
               className="input"
+              disabled={busy}
               value={value}
               onChange={(event) => setValue(event.target.value)}
               required
             />
           </label>
           <div className="flex gap-2">
-            <Button size="small" type="submit">
+            <Button disabled={busy} size="small" type="submit">
               {t(language, 'save')}
             </Button>
-            <Button size="small" variant="ghost" onClick={() => setEditing(false)}>
+            <Button disabled={busy} size="small" variant="ghost" onClick={() => setEditing(false)}>
               {t(language, 'cancel')}
             </Button>
           </div>
@@ -63,7 +83,7 @@ function DossierRow({
           <Button
             size="small"
             variant="ghost"
-            disabled={work.status === WorkStatus.Archived}
+            disabled={busy || work.status === WorkStatus.Archived}
             onClick={() => {
               setValue(localize(language, entry.content));
               setEditing(true);
@@ -84,29 +104,48 @@ function Schedule({ work, language }: { work: Work; language: Language }) {
   const [prompt, setPrompt] = useState(work.schedule?.prompt ?? '');
   const [enabled, setEnabled] = useState(work.schedule?.enabled ?? false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   return (
     <form
       className="flex flex-col gap-4"
-      onSubmit={(event) => {
+      onSubmit={async (event) => {
         event.preventDefault();
-        if (work.status === WorkStatus.Archived || (enabled && !prompt.trim())) return;
-        const changed = demoStore.setSchedule(work.id, {
-          frequency,
-          time,
-          prompt: prompt.trim(),
-          enabled,
-        });
-        setSaved(
-          changed ||
-            (work.schedule?.frequency === frequency &&
-              work.schedule?.time === time &&
-              work.schedule?.prompt === prompt.trim() &&
-              work.schedule?.enabled === enabled),
-        );
+        if (busy) return;
+        setBusy(true);
+        setError('');
+        try {
+          if (work.status === WorkStatus.Archived || (enabled && !prompt.trim())) return;
+          const changed = await workActions.setSchedule(work.id, {
+            frequency,
+            time,
+            prompt: prompt.trim(),
+            enabled,
+          });
+          setSaved(
+            changed ||
+              (work.schedule?.frequency === frequency &&
+                work.schedule?.time === time &&
+                work.schedule?.prompt === prompt.trim() &&
+                work.schedule?.enabled === enabled),
+          );
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : t(language, 'networkError'));
+        } finally {
+          setBusy(false);
+        }
       }}
     >
-      <Muted>{t(language, 'scheduleDemoHint')}</Muted>
-      <fieldset className="flex flex-col gap-4" disabled={work.status === WorkStatus.Archived}>
+      <Muted>{isDesktop() ? rt(language, 'schedule') : t(language, 'scheduleDemoHint')}</Muted>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <fieldset
+        className="flex flex-col gap-4"
+        disabled={busy || work.status === WorkStatus.Archived}
+      >
         <label className="flex gap-3 items-center">
           <input
             type="checkbox"
@@ -135,7 +174,7 @@ function Schedule({ work, language }: { work: Work; language: Language }) {
                 ['weekly', 'scheduleWeekly'],
               ] as const
             ).map(([value, key]) => (
-              <option value={value} key={value}>
+              <option disabled={busy} value={value} key={value}>
                 {t(language, key)}
               </option>
             ))}
@@ -167,13 +206,13 @@ function Schedule({ work, language }: { work: Work; language: Language }) {
             placeholder={t(language, 'schedulePromptPlaceholder')}
           />
         </label>
-        <Button type="submit" disabled={work.status === WorkStatus.Archived}>
+        <Button type="submit" disabled={busy || work.status === WorkStatus.Archived}>
           {t(language, 'save')}
         </Button>
       </fieldset>
       {saved && work.status !== WorkStatus.Archived && (
         <p className="muted" role="status">
-          {t(language, 'scheduleSaved')}
+          {isDesktop() ? rt(language, 'saved') : t(language, 'scheduleSaved')}
         </p>
       )}
     </form>
@@ -214,7 +253,9 @@ export function WorkContext({ work, language }: { work: Work; language: Language
               <details key={artifact.id} className="details">
                 <summary>{localize(language, artifact.title)}</summary>
                 <Muted>{localize(language, artifact.summary)}</Muted>
-                <p className="field-hint mt-3">{t(language, 'artifactDemoHint')}</p>
+                {!isDesktop() && (
+                  <p className="field-hint mt-3">{t(language, 'artifactDemoHint')}</p>
+                )}
                 <pre className="preview mt-3">{localize(language, artifact.content)}</pre>
               </details>
             ))
