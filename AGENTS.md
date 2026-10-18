@@ -10,18 +10,18 @@
 
 ## 文档地图
 
-| 文档 | 用途 |
-| --- | --- |
-| [README.md](README.md) | 产品是什么、为谁、做什么、不做什么 |
-| [DESIGN.md](DESIGN.md) | 设计格调、视觉 token、关键界面、文案语气、验收清单 |
-| [docs/tech-stack.md](docs/tech-stack.md) | 技术选型与「明确不引入」清单 |
-| [docs/architecture.md](docs/architecture.md) | 进程结构、领域模型、关键流程、里程碑 |
+| 文档                                         | 用途                                               |
+| -------------------------------------------- | -------------------------------------------------- |
+| [README.md](README.md)                       | 产品是什么、为谁、做什么、不做什么                 |
+| [DESIGN.md](DESIGN.md)                       | 设计格调、视觉 token、关键界面、文案语气、验收清单 |
+| [docs/tech-stack.md](docs/tech-stack.md)     | 技术选型与「明确不引入」清单                       |
+| [docs/architecture.md](docs/architecture.md) | 进程结构、领域模型、关键流程、里程碑               |
 
 改了架构或选型，同一个 PR 里更新对应文档。
 
 ## 命令
 
-脚手架尚未建立。M0 完成后在这里补齐：开发、构建、lint、format、test、打包命令。约定：
+UI-first 脚手架已建立：`bun run dev`、`bun run build`、`bun run typecheck`、`bun run lint`、`bun run format:check`、`bun run test`、`bun run test:e2e`。尚未接入 Electron/Agent 或打包。约定：
 
 - 包管理只用 Bun（`bun install`、`bun.lock`）；脚本可用 npm 运行。
 - Node 版本与 Electron 内置 Node 保持一致，且 ≥ 22.19。
@@ -50,10 +50,10 @@
 - 视觉值（颜色、字号、圆角、阴影、间距档位）只存在于 `src/renderer/theme/` 的 CSS 变量 token 和共享组件的 variant 中。页面和业务组件只写布局类（flex、grid、gap、宽高约束、滚动）。
 - 组件只从这些地方来：基础控件用 shadcn/ui，Agent 相关展示（消息、推理、工具、附件、代码）用 ai-elements，图标用 `lucide-react`。先找现成的，再考虑扩展 variant，最后才新建。
 - 结构组合用 Tailwind `className` + `cn()`。
-- 不加装饰性渐变、光晕、彩色卡片、嵌套卡片、多余动效；动效遵守 `prefers-reduced-motion`。
+- 采用 DESIGN.md 的原创水彩边缘插画与暖纸阅读面；不加光晕、彩色卡片、嵌套卡片或多余动效；动效遵守 `prefers-reduced-motion`。
 - 每个界面必须在实际渲染中检查：浅色 / 深色、窄窗口、长文本、空状态、加载与错误、键盘焦点。
 - **[DESIGN.md](DESIGN.md) 是视觉与交互的唯一事实来源**，具体数值只在那里维护。改 UI 前先读相关章节，改完按「十三、验收」逐项自查并写进 PR。设计违规是阻断缺陷，功能可用或测试通过不能抵消。
-- 核心判断：**颜色只用来表示「需要你」。** 主按钮是墨色；陶土色只给待决事项和确认操作。
+- 核心判断：**内容居中安静，插画留在四周。** 主按钮用深靛墨；陶土色只给待决事项和确认操作。
 
 ### 文案（温度来自这里）
 
@@ -72,7 +72,12 @@
 - 判别值、状态、RPC 命令名、Document kind 等多处比较的字符串禁止裸字面量，集中定义常量：
 
   ```typescript
-  export const WorkStatus = { Active: 'active', Paused: 'paused', Done: 'done', Archived: 'archived' } as const;
+  export const WorkStatus = {
+    Active: 'active',
+    Paused: 'paused',
+    Done: 'done',
+    Archived: 'archived',
+  } as const;
   export type WorkStatus = (typeof WorkStatus)[keyof typeof WorkStatus];
   ```
 
