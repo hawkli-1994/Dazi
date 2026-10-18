@@ -60,7 +60,7 @@ jobs:
 
   desktop:
     name: Exercise sandboxed desktop and native recovery
-    runs-on: ubuntu-24.04
+    runs-on: macos-15-intel
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
@@ -79,12 +79,10 @@ jobs:
           npm run build
           bun run build:desktop
           node node_modules/electron/install.js
-      - name: Install desktop display libraries and CJK fonts
-        run: |
-          bunx --no-install playwright install-deps chromium
-          sudo apt-get install --no-install-recommends -y fonts-noto-cjk
       - name: Exercise real Electron Host and persistence
-        run: xvfb-run -a npm run test:electron
+        env:
+          DEBUG: pw:browser*
+        run: npm run test:electron
       - name: Upload actual desktop captures and diagnostics
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
