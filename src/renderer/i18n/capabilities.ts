@@ -1,7 +1,7 @@
 export const capabilityZh = {
   capabilitiesIntro: '先试着安排你想用的能力。这里的设置只用于界面预览。',
   capabilityDraftNotice:
-    '草稿只保留在本次演示，离开或刷新后清除。不会连接服务、执行工具或启用真实技能。',
+    '草稿只保留在本次演示，刷新页面后清除。不会连接服务、执行工具或启用真实技能。',
   capabilityNoSecrets: '只填写公开的名称和地址，不要输入密钥、密码或访问令牌。',
   modelProvider: '服务提供方',
   providerOpenAI: 'OpenAI',
@@ -66,7 +66,7 @@ export const capabilityEn: Record<keyof typeof capabilityZh, string> = {
   capabilitiesIntro:
     'Explore the capabilities you would like to use. These settings are for UI preview only.',
   capabilityDraftNotice:
-    'Drafts stay in this demo session and clear when you leave or refresh. No services connect, tools run, or real skills activate.',
+    'Drafts stay in this demo session and clear when you refresh the page. No services connect, tools run, or real skills activate.',
   capabilityNoSecrets:
     'Enter public names and addresses only. Do not enter keys, passwords, or access tokens.',
   modelProvider: 'Provider',
