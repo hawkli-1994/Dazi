@@ -1,8 +1,11 @@
+import { capabilityZh, capabilityEn } from './capabilities';
+
 export const Language = { Chinese: 'zh', English: 'en' } as const;
 export type Language = (typeof Language)[keyof typeof Language];
 export type LocalizedText = Readonly<Record<Language, string>>;
 
 const zh = {
+  ...capabilityZh,
   appName: '搭子',
   welcomeTitle: '把想法，寄往更远的地方。',
   welcomeSubtitle: '一件小事，一个念头，都可以从这里开始。',
@@ -182,6 +185,7 @@ const zh = {
 export type TranslationKey = keyof typeof zh;
 
 const en: Record<TranslationKey, string> = {
+  ...capabilityEn,
   appName: 'Dazi',
   welcomeTitle: 'Send your ideas a little further.',
   welcomeSubtitle: 'A small task, a passing thought. It can all begin here.',

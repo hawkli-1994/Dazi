@@ -20,9 +20,11 @@ List the checks without starting a browser:
 npm run test:e2e -- --list
 ```
 
-The four projects cover desktop light and dark at 1280 × 800, the supported narrow
-desktop window at 960 × 640, and a 390 × 844 responsive preview. The small preview
-is a layout regression check, not a commitment to a mobile product.
+The five projects cover desktop light and dark at 1280 × 800, the approved
+concept's native 1536 × 1024 dimensions, the supported narrow desktop window at
+960 × 640, and a 390 × 844 responsive preview. The small preview is a layout
+regression check, not a commitment to a mobile product. CI installs Noto CJK system
+fonts so Chinese serif and sans-serif rendering is representative.
 
 ## Review artifacts
 

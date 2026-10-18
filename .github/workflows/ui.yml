@@ -40,6 +40,11 @@ jobs:
         run: npm run build
       - name: Install Chromium and system dependencies
         run: bunx --no-install playwright install --with-deps chromium
+      - name: Install CJK fonts for the system serif and sans stacks
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y fonts-noto-cjk
+          fc-match 'Noto Serif CJK SC'
       - name: Run rendered UI checks
         run: bunx --no-install playwright test
       - name: Upload screenshots, traces, and test reports

@@ -33,21 +33,28 @@ export function Status({ status, language }: { status: WorkStatus; language: Lan
     </span>
   );
 }
+const drafts = new Map<string, string>();
+export function clearDrafts() {
+  drafts.clear();
+}
 export function Composer({
   language,
   onSubmit,
   welcome = false,
   disabled = false,
+  draftKey = 'welcome',
 }: {
   language: Language;
   onSubmit: (value: string) => void;
   welcome?: boolean;
   disabled?: boolean;
+  draftKey?: string;
 }) {
-  const [value, setValue] = useState('');
+  const [value, setValue] = useState(() => drafts.get(draftKey) ?? '');
   function submit() {
     if (!value.trim() || disabled) return;
     onSubmit(value.trim());
+    drafts.delete(draftKey);
     setValue('');
   }
   return (
@@ -65,7 +72,10 @@ export function Composer({
         placeholder={t(language, welcome ? 'welcomePlaceholder' : 'composerPlaceholder')}
         value={value}
         disabled={disabled}
-        onChange={(event) => setValue(event.target.value)}
+        onChange={(event) => {
+          setValue(event.target.value);
+          drafts.set(draftKey, event.target.value);
+        }}
         onKeyDown={(event) => {
           if (
             event.key === 'Enter' &&

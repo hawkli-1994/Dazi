@@ -37,6 +37,10 @@ export default defineConfig({
       use: { viewport: { width: 1280, height: 800 }, colorScheme: 'dark' },
     },
     {
+      name: 'native-1536',
+      use: { viewport: { width: 1536, height: 1024 }, colorScheme: 'light' },
+    },
+    {
       name: 'narrow',
       use: { viewport: { width: 960, height: 640 }, colorScheme: 'light' },
     },

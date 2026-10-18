@@ -56,7 +56,15 @@ export function Home({ works, language }: { works: readonly Work[]; language: La
           </Title>
           <Muted className="mt-3">
             {t(language, 'briefingSummary')
-              .replace('{active}', String(active.length))
+              .replace(
+                '{active}',
+                String(
+                  active.filter(
+                    (work) =>
+                      work.status === WorkStatus.Running || work.status === WorkStatus.Queued,
+                  ).length,
+                ),
+              )
               .replace('{waiting}', String(pending.length))}
           </Muted>
         </div>

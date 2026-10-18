@@ -3,7 +3,7 @@ import { Button } from '../../shared/components/ui/button';
 import { Title, Muted } from '../../shared/components/ui/typography';
 import { t, type Language } from '../i18n';
 import { demoStore } from '../state';
-import { navigate } from '../components/common';
+import { clearDrafts, navigate } from '../components/common';
 export const Theme = { Light: 'light', Dark: 'dark', System: 'system' } as const;
 export type Theme = (typeof Theme)[keyof typeof Theme];
 export function Settings({
@@ -85,6 +85,7 @@ export function Settings({
             <Button
               variant="danger"
               onClick={() => {
+                clearDrafts();
                 demoStore.reset();
                 setConfirmReset(false);
                 navigate('/');

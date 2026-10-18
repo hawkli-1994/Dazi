@@ -1,5 +1,22 @@
 import { capture, createWork, expect, loadDemo, routes, test } from './fixtures';
 
+test('a work draft survives an explicit trip to Settings and back', async ({ page }, testInfo) => {
+  const work = await createWork(page);
+  const draft = '先保留这个想法，换个明暗模式再继续。';
+  await page.getByTestId('work-composer').fill(draft);
+  await page.getByRole('navigation').getByRole('link', { name: '设置', exact: true }).click();
+  await expect(page).toHaveURL(/#\/settings$/);
+  await page.getByTestId('theme-select').selectOption('dark');
+  await page.goBack();
+  await expect(page).toHaveURL(work.url);
+  await expect(page.getByTestId('work-composer')).toHaveValue(draft);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await capture(page, testInfo, '29-draft-after-settings');
+  await page.getByTestId('send-message').click();
+  await expect(page.getByText(draft, { exact: true })).toHaveCount(1);
+  await expect(page.getByTestId('work-composer')).toHaveValue('');
+});
+
 test('system theme changes preserve the active draft and keyboard focus', async ({
   page,
 }, testInfo) => {

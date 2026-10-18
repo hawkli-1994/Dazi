@@ -36,7 +36,7 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
       </main>
     );
   return (
-    <main className="page">
+    <main className="page work-page">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0">
           <Title>{localize(language, work.title)}</Title>
@@ -115,6 +115,7 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
           </div>
           <div>
             <Composer
+              draftKey={work.id}
               language={language}
               disabled={work.status === WorkStatus.Archived}
               onSubmit={(text) => demoStore.submit(work.id, text)}

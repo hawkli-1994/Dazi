@@ -1,4 +1,41 @@
-import { capture, createWork, expect, routes, test } from './fixtures';
+import { capture, createWork, expect, loadDemo, routes, test } from './fixtures';
+
+test('work notes support keyboard dismissal and return focus to their control', async ({
+  page,
+  viewport,
+}, testInfo) => {
+  await loadDemo(page);
+  await page.goto('/#/work/brand-website');
+  const toggle = page.getByTestId('work-record-toggle');
+  const panel = page.locator('#work-record');
+  const isNarrow = (viewport?.width ?? 1280) <= 1100;
+  if (isNarrow) {
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await toggle.press('Enter');
+    const drawer = page.getByRole('dialog', { name: '工作档案', exact: true });
+    await expect(drawer).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await capture(page, testInfo, '30-notes-drawer-keyboard');
+    await page.keyboard.press('Escape');
+    await expect(drawer).toHaveCount(0);
+    await expect(toggle).toBeFocused();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    await toggle.press('Enter');
+    await drawer.getByRole('button', { name: '关闭', exact: true }).click();
+    await expect(drawer).toHaveCount(0);
+    await expect(toggle).toBeFocused();
+  } else {
+    await expect(panel).toBeVisible();
+    await toggle.press('Enter');
+    await expect(panel).toHaveCount(0);
+    await expect(toggle).toBeFocused();
+    await toggle.press('Enter');
+    await expect(panel).toBeVisible();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await capture(page, testInfo, '30-notes-panel-keyboard');
+  }
+});
 
 test('required fields explain errors and work can be created with the keyboard', async ({
   page,
