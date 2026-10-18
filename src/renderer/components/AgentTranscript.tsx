@@ -1,10 +1,11 @@
+import { runtimeErrorText } from '../i18n/errors';
 import { memo, useMemo } from 'react';
 import type { ConversationView } from '@earendil-works/pi-durable';
 import { ChevronRight } from 'lucide-react';
 import { Message, MessageContent } from '../../shared/components/ai-elements/message';
 import { agentText, type AgentLanguage } from '../i18n/agent';
 import { AgentMarkdown, LocalImage } from './agent/AgentMarkdown';
-import { JsonDetails, ToolBlock, ToolResult, UnmatchedTool } from './agent/ToolBlock';
+import { ToolBlock, ToolResult, UnmatchedTool } from './agent/ToolBlock';
 import {
   ContentType,
   PiRole,
@@ -130,7 +131,9 @@ const TranscriptEntry = memo(function TranscriptEntry({
               {message.errorMessage && (
                 <details className="agent-disclosure">
                   <summary>{agentText(language, 'details')}</summary>
-                  <pre className="agent-code">{message.errorMessage}</pre>
+                  <pre className="agent-code">
+                    {runtimeErrorText(language, message.errorMessage)}
+                  </pre>
                 </details>
               )}
             </div>
@@ -183,7 +186,9 @@ export function AgentTranscript({ view, language, disconnected }: AgentTranscrip
           {live?.generation?.retry && (
             <details className="agent-disclosure">
               <summary>{agentText(language, 'retry')}</summary>
-              <pre className="agent-code">{live.generation.retry.error}</pre>
+              <pre className="agent-code">
+                {runtimeErrorText(language, live.generation.retry.error)}
+              </pre>
             </details>
           )}
           {live?.generation?.deferred && (
@@ -199,7 +204,9 @@ export function AgentTranscript({ view, language, disconnected }: AgentTranscrip
           {live?.compactionFailure && (
             <details className="agent-disclosure">
               <summary>{agentText(language, 'compactionFailed')}</summary>
-              <JsonDetails value={{ error: live.compactionFailure.error }} />
+              <p className="agent-note">
+                {runtimeErrorText(language, live.compactionFailure.error)}
+              </p>
             </details>
           )}
         </>

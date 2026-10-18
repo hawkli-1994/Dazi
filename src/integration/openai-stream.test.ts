@@ -183,7 +183,15 @@ describe('official OpenAI Responses adapter wire replay', () => {
             ),
         ),
       ).toBe(true);
-      expect(transcript.messages.at(-1)?.role).toBe('assistant');
+      const final = transcript.messages.at(-1);
+      expect(final?.role).toBe('assistant');
+      expect(
+        final?.role === 'assistant' &&
+          final.content
+            .filter((block) => block.type === 'text')
+            .map((block) => block.text)
+            .join(''),
+      ).toBe('Fixture complete.');
     } finally {
       await watch.stop();
       await harness.close(BACKGROUND_CONTEXT);

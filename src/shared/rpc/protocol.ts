@@ -27,6 +27,7 @@ export const Wire = {
   Catalog: 'catalog',
   Settlement: 'settlement',
   Ack: 'ack',
+  NoticeAck: 'noticeAck',
   Error: 'error',
 } as const;
 export type ModelChoice = { provider: string; modelId: string };
@@ -127,8 +128,14 @@ export type HostEvent =
       sequence: number;
       ops: readonly Op[];
     }
-  | { type: typeof Wire.Documents; subscriptionId: string; workId: string; value: WorkDocuments }
-  | { type: typeof Wire.Catalog; works: WorkSummary[] }
+  | {
+      type: typeof Wire.Documents;
+      subscriptionId: string;
+      workId: string;
+      noticeId: string;
+      value: WorkDocuments;
+    }
+  | { type: typeof Wire.Catalog; noticeId: string; works: WorkSummary[] }
   | {
       type: typeof Wire.Settlement;
       workId: string;
@@ -138,4 +145,5 @@ export type HostEvent =
   | { type: typeof Wire.Error; error: string };
 export type ClientMessage =
   | Request
+  | { type: typeof Wire.NoticeAck; noticeId: string }
   | { type: typeof Wire.Ack; subscriptionId: string; sequence: number };

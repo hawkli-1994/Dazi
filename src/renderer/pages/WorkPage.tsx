@@ -1,3 +1,4 @@
+import { runtimeErrorText } from '../i18n/errors';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { Button } from '../../shared/components/ui/button';
@@ -144,9 +145,7 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
                   try {
                     await workActions.abort(work.id);
                   } catch (cause) {
-                    setActionError(
-                      cause instanceof Error ? cause.message : t(language, 'networkError'),
-                    );
+                    setActionError(runtimeErrorText(language, cause));
                   } finally {
                     setStopping(false);
                   }
@@ -182,9 +181,7 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
                         await workActions.archive(work.id);
                         setConfirmArchive(false);
                       } catch (cause) {
-                        setActionError(
-                          cause instanceof Error ? cause.message : t(language, 'networkError'),
-                        );
+                        setActionError(runtimeErrorText(language, cause));
                       }
                     }}
                   >

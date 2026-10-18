@@ -35,7 +35,6 @@ import {
   DecisionStatus,
   DecisionsDoc,
   DossierDoc,
-  Frequency,
   initializeWorkDocuments,
   PlanDoc,
   ScheduleDoc,
@@ -46,8 +45,9 @@ import { HostError, HostErrorCode, requireText } from './errors';
 import { createWorkTools } from './extensions/work-tools';
 import { createTestProvider, TestModel, TestTools } from './testing';
 import { WorkMemory } from './work-memory';
-import { latestScheduleSlot } from './schedule';
 import { WorkAdmission } from './admission';
+import { configureSchedule } from './configure-schedule';
+import { isWorkId } from './ids';
 
 export const context = BACKGROUND_CONTEXT;
 export type RuntimeOptions = { storagePath?: string; storage?: Storage; testProvider?: boolean };
@@ -183,7 +183,7 @@ export class HostRuntime {
   }
 
   async conversation(workId: string, allowArchived = false): Promise<Conversation> {
-    if (!/^\d+$/.test(workId) || !Number.isSafeInteger(Number(workId)) || Number(workId) <= 0) {
+    if (!isWorkId(workId)) {
       throw new HostError(HostErrorCode.WorkNotFound);
     }
     const id = Number(workId) as ConversationId;
@@ -302,6 +302,35 @@ export class HostRuntime {
     return this.#admission.run(input.workId, () => this.admit(input));
   }
 
+  async submitScheduled(
+    workId: string,
+    slot: string,
+    expected: WorkDocuments['schedule'],
+  ): Promise<boolean> {
+    return this.#admission.run(workId, async () => {
+      const conversation = await this.conversation(workId);
+      const current = await this.harness.snapshot(ScheduleDoc, conversation.id, context);
+      if (
+        !current?.enabled ||
+        current.lastSlot >= slot ||
+        current.time !== expected.time ||
+        current.frequency !== expected.frequency ||
+        current.prompt !== expected.prompt
+      )
+        return false;
+      await this.admit({
+        workId,
+        text: current.prompt,
+        requestId: `schedule:${workId}:${slot}`,
+        whenBusy: 'followUp',
+      });
+      await conversation.commit(async (tx) => {
+        (await tx.doc(ScheduleDoc, conversation.id)).lastSlot = slot;
+      }, context);
+      return true;
+    });
+  }
+
   private async admit(input: CommandMap['submit']['input']): Promise<{ submissionId: string }> {
     const conversation = await this.conversation(input.workId);
     const text = requireText(input.text);
@@ -415,34 +444,13 @@ export class HostRuntime {
         return null;
       }
       case Command.SetSchedule: {
-        const conversation = await this.conversation(request.input.workId);
-        const schedule = request.input.schedule;
-        if (
-          typeof schedule.enabled !== 'boolean' ||
-          !Object.values(Frequency).includes(schedule.frequency) ||
-          !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(schedule.time) ||
-          typeof schedule.prompt !== 'string' ||
-          schedule.prompt.length > 20_000 ||
-          (schedule.enabled && !schedule.prompt.trim())
-        )
-          throw new HostError(HostErrorCode.InvalidInput);
-        await conversation.commit(async (tx) => {
-          const current = await tx.doc(ScheduleDoc, conversation.id);
-          const changed =
-            !current.enabled ||
-            current.time !== schedule.time ||
-            current.frequency !== schedule.frequency ||
-            current.prompt !== schedule.prompt.trim();
-          Object.assign(current, {
-            enabled: schedule.enabled,
-            frequency: schedule.frequency,
-            time: schedule.time,
-            prompt: schedule.prompt.trim(),
-          });
-          // Enabling starts from now; restart catches only the newest missed slot.
-          if (schedule.enabled && changed)
-            current.lastSlot = latestScheduleSlot(schedule, new Date());
-        }, context);
+        await this.#admission.run(request.input.workId, async () => {
+          const conversation = await this.conversation(request.input.workId);
+          await conversation.commit(
+            (tx) => configureSchedule(tx, conversation.id, request.input.schedule),
+            context,
+          );
+        });
         this.setScheduleError(request.input.workId);
         return null;
       }

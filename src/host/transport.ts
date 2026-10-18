@@ -1,5 +1,6 @@
 import { Command, Wire, type ClientMessage, type Request } from '../shared/rpc/protocol';
 import { HostError, HostErrorCode } from './errors';
+import { isWorkId } from './ids';
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -17,6 +18,9 @@ export function isSubscriptionId(value: unknown): value is string {
 /** This is validation of the transport envelope, not a second conversation format. */
 export function parseClientMessage(value: unknown): ClientMessage {
   if (!record(value)) throw new HostError(HostErrorCode.InvalidInput);
+  if (value.type === Wire.NoticeAck && isSubscriptionId(value.noticeId)) {
+    return { type: Wire.NoticeAck, noticeId: value.noticeId };
+  }
   if (
     value.type === Wire.Ack &&
     isSubscriptionId(value.subscriptionId) &&
@@ -32,7 +36,7 @@ export function parseClientMessage(value: unknown): ClientMessage {
   if (value.type !== Wire.Request || !text(value.id, 200) || !record(value.input))
     throw new HostError(HostErrorCode.InvalidInput);
   const input = value.input;
-  const work = () => text(input.workId, 100);
+  const work = () => isWorkId(input.workId);
   let valid = false;
   switch (value.command) {
     case Command.ListWorks:

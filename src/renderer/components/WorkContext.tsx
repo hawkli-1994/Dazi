@@ -1,3 +1,4 @@
+import { runtimeErrorText } from '../i18n/errors';
 import { useState } from 'react';
 import { Button } from '../../shared/components/ui/button';
 import { Muted } from '../../shared/components/ui/typography';
@@ -49,7 +50,7 @@ function DossierRow({
                   setEditing(false);
               }
             } catch (cause) {
-              setError(cause instanceof Error ? cause.message : t(language, 'networkError'));
+              setError(runtimeErrorText(language, cause));
             } finally {
               setBusy(false);
             }
@@ -130,7 +131,7 @@ function Schedule({ work, language }: { work: Work; language: Language }) {
                 work.schedule?.enabled === enabled),
           );
         } catch (cause) {
-          setError(cause instanceof Error ? cause.message : t(language, 'networkError'));
+          setError(runtimeErrorText(language, cause));
         } finally {
           setBusy(false);
         }

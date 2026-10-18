@@ -15,7 +15,7 @@
 | MCP             | `@modelcontextprotocol/sdk` 桥接为 extension + `tool-search` | 大量 MCP 工具延迟加载，不撑爆上下文                            |
 | 前端            | React + Vite + TypeScript                                    | 团队熟悉，生态成熟                                             |
 | 样式            | Tailwind CSS v4 + CSS 变量 token                             | 一套主题，浅色 / 深色                                          |
-| 组件            | shadcn/ui（Base UI）+ ai-elements + lucide-react             | 基础控件、Agent 展示、图标各有唯一来源                         |
+| 组件            | shadcn/ui（Base UI）+ Streamdown + lucide-react              | 基础控件、Agent 展示、图标各有唯一来源                         |
 | 前端状态        | 订阅宿主推送的视图 + `useSyncExternalStore`                  | 真相在内核里，前端只做投影，不引入 Redux                       |
 | 包管理 / 运行时 | Bun（安装）+ Node（运行）                                    | 与内核 Node 要求一致                                           |
 | 质量            | oxlint、oxfmt、Vitest                                        | 快，足够用                                                     |
@@ -81,3 +81,7 @@ Tauri 体积更小，但内核是 Node 包，需要 `node:sqlite`、子进程和
 The first runnable slice is the React renderer only. No Electron/Host/kernel package is installed until the separate Agent integration phase. The in-memory `DemoStore` exposes immutable structured projections through `useSyncExternalStore`; refresh resets all work and preferences. It is a presentation fixture, not a second durable store.
 
 Dependency purpose: React/Vite/TypeScript implement the renderer; Tailwind v4, Base UI, cva/clsx/tailwind-merge compose reusable controls and tokens; lucide supplies icons. Vitest, Playwright, oxlint and oxfmt verify state, interaction, visual captures and code quality. Versions are exact and Bun-lockfile backed. Message primitives use the ai-elements composition model without adding an AI SDK or provider to this UI-only stage.
+
+## Agent 接入阶段
+
+2026-10-18 用户明确允许保留现有 Agent 展示组件，不强制 ai-elements 来源。Streamdown 2.7.0 只负责 Markdown；Pi Durable/ai/chord 全部精确锁定 1.3.0，唯一运行与业务状态源仍是原生内核。选择直接渲染的理由是已验收 UI 只需 Markdown 能力，减少组件与消息结构转换；ai-elements 本身并不强制另一套运行时。Electron 44.9.0 / Node 24.22.0 与本机 SQLite 由实际桌面 CI 验证。恢复协议、依赖证据和未验证边界见 [接入记录](agent-integration.md)。

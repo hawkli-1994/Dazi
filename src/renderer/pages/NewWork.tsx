@@ -1,3 +1,4 @@
+import { runtimeErrorText } from '../i18n/errors';
 import { useRef, useState } from 'react';
 import { Button } from '../../shared/components/ui/button';
 import { Title, Muted } from '../../shared/components/ui/typography';
@@ -37,7 +38,7 @@ export function NewWork({ language, initialGoal }: { language: Language; initial
               `/work/${await workActions.createWork(goal.trim(), directory.trim(), requestId.current)}`,
             );
           } catch (cause) {
-            setError(cause instanceof Error ? cause.message : t(language, 'networkError'));
+            setError(runtimeErrorText(language, cause));
           } finally {
             setBusy(false);
           }

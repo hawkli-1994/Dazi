@@ -52,3 +52,21 @@ This is real runtime execution with controlled model responses. It is not a live
 - [ ] Live provider smoke performed or explicitly blocked by unavailable safe credentials
 
 Provider-supplied reasoning content may be shown, collapsed by default. Hidden chain-of-thought is never fabricated or inferred. A disconnected transport, idle runtime and successful run are three different states.
+
+## Published-provider wire replay
+
+`src/integration/openai-stream.test.ts` injects synthetic SSE bytes through the published OpenAI Responses adapter's supported `fetch` option, then executes the real Harness. It verifies two model rounds, provider-public reasoning partials, split Chinese/escaped tool arguments, one tool execution, persisted output and final assistant entry. The explicit fixture string is not a credential; the injected fetch does not contact a provider. This covers a protocol fixture, not live API behavior, authentication, rate limits or all malformed-response variants.
+
+## Transport and safety details
+
+- Native view frames use sequence/ACK and bounded root replacement. Catalog and custom Documents separately allow one in-flight notice plus a latest-dirty marker; acknowledgement reads the latest state rather than queueing snapshots.
+- Reconnect replaces the view using a new subscription and connection generation. Disconnecting a view does not cancel the run; Stop explicitly calls native abort.
+- Submission admission and archive marking use a short per-work critical section. Archive releases it before awaiting abort.
+- New and edited schedules initialize their prior slot; enabling at 08:00 for 09:00 never runs yesterday's slot immediately.
+- Side-effect tools keep unsafe replay semantics. Approval persists the exact tool arguments; it does not pretend to make arbitrary shell effects idempotent. Read access is scoped to the canonical work directory; the directory is not an OS sandbox.
+- External links require an explicit user click and validated HTTP(S) URL. Remote Markdown images, raw HTML, renderer network access and arbitrary new windows remain disabled.
+- MCP, skill installation and background sub-agent extensions are not enabled in this slice. They remain separate product milestones, visibly unavailable rather than simulated in desktop mode.
+
+The user explicitly approved relaxing the ai-elements-only component rule on 2026-10-18. The implementation retains the approved UI and uses Streamdown directly for Markdown, with native Pi view projection. This reduces component/message translation; ai-elements itself does not require another Agent runtime.
+
+The parallel-tool regression generates events from the current published runtime on every run. Two tools complete out of order while native results retain exact call ownership and full output equality. Final assistant text is compared in full, not by prefix or fixture fingerprint.

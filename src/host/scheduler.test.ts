@@ -159,7 +159,7 @@ describe('WorkScheduler durable admission', () => {
 
   it('sets the current slot when enabled without immediately running old slots', async () => {
     const { runtime, storage, scheduler, workId } = await setup();
-    const submit = vi.spyOn(runtime, 'submit');
+    const submit = vi.spyOn(runtime, 'submitScheduled');
     await setSchedule(runtime, workId, enabled);
     expect((await runtime.documents(workId)).schedule.lastSlot).toBe('2026-10-19T09:00');
     await scheduler.tick(NOW);
@@ -175,17 +175,15 @@ describe('WorkScheduler durable admission', () => {
     const { runtime, storage, scheduler, workId } = await setup();
     await setSchedule(runtime, workId, enabled);
     await setPreviousSlot(runtime, workId);
-    const submit = vi.spyOn(runtime, 'submit');
+    const submit = vi.spyOn(runtime, 'submitScheduled');
     const firstTick = scheduler.tick(NOW);
     expect(scheduler.tick(NOW)).toBe(firstTick);
     await firstTick;
     await scheduler.tick(NOW);
     expect(submit).toHaveBeenCalledTimes(1);
-    expect(submit).toHaveBeenCalledWith({
-      workId,
-      text: enabled.prompt,
-      requestId: `schedule:${workId}:2026-10-19T09:00`,
-      whenBusy: 'followUp',
+    expect(submit).toHaveBeenCalledWith(workId, '2026-10-19T09:00', {
+      ...enabled,
+      lastSlot: '2026-10-01T09:00',
     });
     expect((await runtime.documents(workId)).schedule.lastSlot).toBe('2026-10-19T09:00');
     const conversation = await runtime.conversation(workId);
@@ -245,7 +243,7 @@ describe('WorkScheduler durable admission', () => {
   it('closes its active loop and does not admit further slots', async () => {
     const { runtime, storage, scheduler, workId } = await setup();
     await setSchedule(runtime, workId, enabled);
-    const submit = vi.spyOn(runtime, 'submit');
+    const submit = vi.spyOn(runtime, 'submitScheduled');
     scheduler.start();
     await scheduler.close();
     await setPreviousSlot(runtime, workId);

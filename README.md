@@ -59,18 +59,23 @@
 
 ## 状态
 
-当前先完成 UI，再接入 Agent。此分支提供可运行的水彩界面：欢迎、简报、工作对话与档案、能力、设置。所有示例明确标注，输入只留在当前内存中；刷新会重置，不连接模型、不访问文件、不执行任务。M0 Agent 验证尚未开始。
+Agent 接入分支保留已验收的水彩界面，并加入 Electron 桌面壳和唯一持久化工作进程。桌面模式使用真实 Pi Durable：输入、取消、工具审批、工作档案与定时规则保存在本机 SQLite。浏览器模式仍是明确标注的内存演示，刷新会重置。
 
-## 运行界面
+实现与验证边界见 [Agent 接入记录](docs/agent-integration.md)。受控官方协议回放不是在线模型验收；真实供应商 API 冒烟仍需用户本机安全配置凭据后执行。
 
-Node 24.19+，Bun 1.4.3。
+## 运行
+
+Node 24.22.0（与 Electron 内置版本一致），Bun 1.4.3。
 
 ```sh
 bun install --frozen-lockfile
-bun run dev
+bun run dev        # 浏览器 UI 演示
+bun run desktop    # 构建并启动真实桌面应用
 ```
 
-设置页可载入示例工作，体验待决定、进行中、完成、错误与空状态。浅色/深色/跟随系统和中文/英文可切换。
+桌面应用只在 Host 读取供应商环境配置。用户在本机安全配置 OPENAI_API_KEY 或 ANTHROPIC_API_KEY 后，从继承该环境的终端启动应用；能力页只显示可用状态并选择模型。不要把密钥贴进聊天、源码或测试。此版本不提供应用内凭据保存或登录流程。
+
+关闭窗口会收起到托盘，工作继续；从托盘退出会安全关闭存储。重新启动恢复已保存工作。模型/工具故障保留原生终态；不把所有闲置状态当作成功。定时使用电脑本地时间，每周一执行；首次启用不会补跑启用前任务，离线后只补最近一次错过的槽位。
 
 ```sh
 bun run typecheck
@@ -79,6 +84,8 @@ bun run format:check
 bun run test
 bun run build
 bun run test:e2e
+bun run build:desktop
+bun run test:electron
 ```
 
-浏览器测试需要 Playwright Chromium；CI 自动安装并上传截图与报告，不部署。
+浏览器测试需要 Playwright Chromium；Linux Electron 测试需要显示服务（CI 使用 xvfb）。CI 上传实际截图与报告，不部署。Electron 测试显式启用受控模型，只在临时目录操作，不使用真实凭据。

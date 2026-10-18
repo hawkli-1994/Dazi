@@ -1,3 +1,4 @@
+import { runtimeErrorText } from './i18n/errors';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Orbit } from 'lucide-react';
 import { Home } from './pages/Home';
@@ -73,14 +74,14 @@ export function App() {
           ))}
         </nav>
       </header>
-      <p className="demo-notice" role="status">
+      <p className="demo-notice" role={isDesktop() ? 'status' : undefined}>
         {isDesktop()
           ? rt(state.language, runtime.connected ? 'connected' : 'reconnecting')
           : t(state.language, 'demoNotice')}
       </p>
       {isDesktop() && runtime.error && (
         <p className="error page page-narrow" role="alert">
-          {runtime.error}
+          {runtimeErrorText(state.language, runtime.error)}
         </p>
       )}
       {path === Route.Settings ? (

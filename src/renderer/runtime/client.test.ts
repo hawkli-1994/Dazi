@@ -4,7 +4,12 @@ import { createModels } from '@earendil-works/pi-ai/models';
 import type { JsonValue } from '@earendil-works/chord';
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
 import { RuntimeClient } from './client';
-import { Wire, type ClientMessage, type HostEvent } from '../../shared/rpc/protocol';
+import {
+  Wire,
+  type ClientMessage,
+  type HostEvent,
+  type WorkDocuments,
+} from '../../shared/rpc/protocol';
 const cleanups: (() => void | Promise<void>)[] = [];
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
@@ -50,6 +55,45 @@ async function setup() {
   return { client, pair, received, send, base, value: watch.value };
 }
 describe('native stream transport', () => {
+  it('acknowledges catalog and document notices without accepting a stale subscription', async () => {
+    const { client, received, send, base, value } = await setup();
+    send({ type: Wire.Snapshot, ...base, sequence: 0, value });
+    const documents: WorkDocuments = {
+      work: {
+        title: 'Real work',
+        goal: 'Review',
+        directory: '/work',
+        archived: false,
+        createdAt: '',
+      },
+      dossier: { notes: [] },
+      plan: { items: [] },
+      artifacts: { items: [] },
+      decisions: { items: [] },
+      schedule: { enabled: false, frequency: 'daily', time: '09:00', prompt: '', lastSlot: '' },
+    };
+    const catalog = crypto.randomUUID();
+    const stale = crypto.randomUUID();
+    send({ type: Wire.Catalog, noticeId: catalog, works: [] });
+    send({
+      type: Wire.Documents,
+      ...base,
+      subscriptionId: crypto.randomUUID(),
+      noticeId: stale,
+      value: documents,
+    });
+    await tick();
+    expect(client.getSnapshot().documents).toBeNull();
+    const current = crypto.randomUUID();
+    send({ type: Wire.Documents, ...base, noticeId: current, value: documents });
+    await tick();
+    expect(client.getSnapshot().documents).toEqual(documents);
+    expect(received.filter((event) => event.type === Wire.NoticeAck)).toEqual([
+      { type: Wire.NoticeAck, noticeId: catalog },
+      { type: Wire.NoticeAck, noticeId: stale },
+      { type: Wire.NoticeAck, noticeId: current },
+    ]);
+  });
   it('applies root replacement and acknowledges only committed sequence without duplicate append', async () => {
     const { client, received, send, base, value } = await setup();
     send({ type: Wire.Snapshot, ...base, sequence: 0, value });

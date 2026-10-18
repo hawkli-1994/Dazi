@@ -4,7 +4,14 @@ import type {
   DocumentWatch,
   JsonObject,
 } from '@earendil-works/pi-durable';
-import { Command, Wire, type HostEvent, type Request } from '../shared/rpc/protocol';
+import {
+  Command,
+  Wire,
+  type HostEvent,
+  type Request,
+  type WorkDocuments,
+  type WorkSummary,
+} from '../shared/rpc/protocol';
 import {
   ArtifactsDoc,
   DecisionsDoc,
@@ -17,6 +24,7 @@ import {
 import { HostErrorCode, publicError } from './errors';
 import { context, HostRuntime } from './runtime';
 import { parseClientMessage } from './transport';
+import { LatestNotice } from './notices';
 
 type ActiveSubscription = {
   id: string;
@@ -24,6 +32,7 @@ type ActiveSubscription = {
   watch: ConversationWatch;
   docs: DocumentWatch<JsonObject>[];
   sequence: number;
+  notices: LatestNotice<WorkDocuments>;
   ack?: { sequence: number; resolve: () => void };
 };
 
@@ -46,14 +55,18 @@ export class HostConnection {
   #closed = false;
   #epoch = 0;
   #active?: ActiveSubscription;
-  #catalogPending = false;
-  #catalogDirty = false;
+  readonly #catalog: LatestNotice<WorkSummary[]>;
   readonly #unsubscribe: (() => void)[];
 
   constructor(
     readonly runtime: HostRuntime,
     readonly send: (event: HostEvent) => void,
   ) {
+    this.#catalog = new LatestNotice(
+      () => runtime.listWorks(),
+      (noticeId, works) => this.emit({ type: Wire.Catalog, noticeId, works }),
+      () => this.emit({ type: Wire.Error, error: HostErrorCode.OperationFailed }),
+    );
     this.#unsubscribe = [
       runtime.harness.subscribeCommits((publication) => {
         if (affectsCatalog(publication)) this.queueCatalog();
@@ -72,22 +85,7 @@ export class HostConnection {
   }
 
   private queueCatalog(): void {
-    this.#catalogDirty = true;
-    if (this.#catalogPending || this.#closed) return;
-    this.#catalogPending = true;
-    queueMicrotask(() => {
-      void (async () => {
-        while (this.#catalogDirty && !this.#closed) {
-          this.#catalogDirty = false;
-          this.emit({ type: Wire.Catalog, works: await this.runtime.listWorks() });
-        }
-      })()
-        .catch(() => this.emit({ type: Wire.Error, error: HostErrorCode.OperationFailed }))
-        .finally(() => {
-          this.#catalogPending = false;
-          if (this.#catalogDirty && !this.#closed) this.queueCatalog();
-        });
-    });
+    void this.#catalog.request();
   }
 
   async receive(raw: unknown): Promise<void> {
@@ -97,6 +95,10 @@ export class HostConnection {
       message = parseClientMessage(raw);
     } catch (error) {
       this.emit({ type: Wire.Error, error: publicError(error) });
+      return;
+    }
+    if (message.type === Wire.NoticeAck) {
+      if (!this.#catalog.ack(message.noticeId)) this.#active?.notices.ack(message.noticeId);
       return;
     }
     if (message.type === Wire.Ack) {
@@ -123,6 +125,7 @@ export class HostConnection {
     this.#active = undefined;
     if (!active) return;
     active.ack?.resolve();
+    active.notices.close();
     await Promise.all([active.watch.stop(), ...active.docs.map((watch) => watch.stop())]);
   }
 
@@ -161,7 +164,20 @@ export class HostConnection {
       await Promise.all([watch.stop(), ...docs.map((doc) => doc.stop())]);
       return { subscriptionId };
     }
-    const active: ActiveSubscription = { id: subscriptionId, workId, watch, docs, sequence: 0 };
+    const notices = new LatestNotice(
+      () => this.runtime.documents(workId),
+      (noticeId, value) =>
+        this.emit({ type: Wire.Documents, subscriptionId, workId, noticeId, value }),
+      () => this.emit({ type: Wire.Error, error: HostErrorCode.OperationFailed }),
+    );
+    const active: ActiveSubscription = {
+      id: subscriptionId,
+      workId,
+      watch,
+      docs,
+      sequence: 0,
+      notices,
+    };
     this.#active = active;
     const initialAck = this.waitForAck(active, 0, {
       type: Wire.Snapshot,
@@ -170,34 +186,11 @@ export class HostConnection {
       sequence: 0,
       value: watch.value,
     });
-    const value = await this.runtime.documents(workId);
+    await notices.request();
     if (this.#active !== active) return { subscriptionId };
-    this.emit({ type: Wire.Documents, subscriptionId, workId, value });
-    let documentsPending = false;
-    let documentsDirty = false;
-    const queueDocuments = () => {
-      documentsDirty = true;
-      if (documentsPending) return;
-      documentsPending = true;
-      queueMicrotask(() => {
-        void (async () => {
-          while (documentsDirty && this.#active === active) {
-            documentsDirty = false;
-            const current = await this.runtime.documents(workId);
-            if (this.#active === active)
-              this.emit({ type: Wire.Documents, subscriptionId, workId, value: current });
-          }
-        })()
-          .catch(() => this.emit({ type: Wire.Error, error: HostErrorCode.OperationFailed }))
-          .finally(() => {
-            documentsPending = false;
-            if (documentsDirty && this.#active === active) queueDocuments();
-          });
-      });
-    };
     for (const doc of docs)
       doc.start(async () => {
-        queueDocuments();
+        void notices.request();
       });
     watch.start(async (_value, ops) => {
       await initialAck;
@@ -223,6 +216,7 @@ export class HostConnection {
   async close(): Promise<void> {
     if (this.#closed) return;
     this.#closed = true;
+    this.#catalog.close();
     ++this.#epoch;
     for (const unsubscribe of this.#unsubscribe) unsubscribe();
     await this.stopActive();

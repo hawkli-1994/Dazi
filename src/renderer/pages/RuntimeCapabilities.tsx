@@ -1,9 +1,10 @@
+import { runtimeErrorText } from '../i18n/errors';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Button } from '../../shared/components/ui/button';
 import { Title, Muted } from '../../shared/components/ui/typography';
 import { runtimeClient } from '../runtime/client';
 import { rt } from '../i18n/runtime';
-import { t, type Language } from '../i18n';
+import type { Language } from '../i18n';
 import type { ModelInfo } from '../../shared/rpc/protocol';
 export function RuntimeCapabilities({ language }: { language: Language }) {
   const connection = useSyncExternalStore(
@@ -31,7 +32,7 @@ export function RuntimeCapabilities({ language }: { language: Language }) {
         }
       })
       .catch((cause: Error) => {
-        if (live) setError(cause.message);
+        if (live) setError(runtimeErrorText(language, cause));
       });
     return () => {
       live = false;
@@ -57,7 +58,7 @@ export function RuntimeCapabilities({ language }: { language: Language }) {
             });
             setSaved(true);
           } catch (cause) {
-            setError(cause instanceof Error ? cause.message : t(language, 'networkError'));
+            setError(runtimeErrorText(language, cause));
           } finally {
             setBusy(false);
           }
@@ -66,6 +67,7 @@ export function RuntimeCapabilities({ language }: { language: Language }) {
         <label className="field">
           <span>{rt(language, 'model')}</span>
           <select
+            disabled={busy}
             className="select"
             value={selection}
             onChange={(event) => {

@@ -1,3 +1,4 @@
+import { runtimeErrorText } from '../i18n/errors';
 import { localized } from '../i18n';
 import { WorkStatus, DossierKind, ArtifactKind, type Work } from '../state/types';
 import type { RuntimeSnapshot } from './client';
@@ -32,7 +33,7 @@ export function projectWorks(snapshot: RuntimeSnapshot): Work[] {
       updatedAt: summary.meta.createdAt,
       status,
       summary: summary.error
-        ? text(summary.error)
+        ? localized(runtimeErrorText('zh', summary.error), runtimeErrorText('en', summary.error))
         : busy
           ? localized(
               '正在推进，进展会保存在这项工作里。',

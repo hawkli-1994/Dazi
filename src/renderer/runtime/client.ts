@@ -126,8 +126,10 @@ export class RuntimeClient {
       this.pending.delete(event.id);
       if (event.ok) pending.resolve(event.value);
       else pending.reject(new Error(event.error));
-    } else if (event.type === Wire.Catalog) this.update({ works: event.works });
-    else if (event.type === Wire.Error) this.update({ error: event.error });
+    } else if (event.type === Wire.Catalog) {
+      this.update({ works: event.works });
+      this.port?.postMessage({ type: Wire.NoticeAck, noticeId: event.noticeId });
+    } else if (event.type === Wire.Error) this.update({ error: event.error });
     else if (
       event.type === Wire.Snapshot &&
       event.workId === this.desiredWork &&
@@ -159,13 +161,11 @@ export class RuntimeClient {
       } catch {
         void this.openWork(event.workId);
       }
-    } else if (
-      event.type === Wire.Documents &&
-      event.subscriptionId === this.subscriptionId &&
-      event.workId === this.desiredWork
-    )
-      this.update({ documents: event.value });
-    else if (event.type === Wire.Settlement && event.workId === this.desiredWork) {
+    } else if (event.type === Wire.Documents) {
+      if (event.subscriptionId === this.subscriptionId && event.workId === this.desiredWork)
+        this.update({ documents: event.value });
+      this.port?.postMessage({ type: Wire.NoticeAck, noticeId: event.noticeId });
+    } else if (event.type === Wire.Settlement && event.workId === this.desiredWork) {
       // Settlement is authoritative; an idle transport or cleared live slot is not success.
       this.update({
         error:

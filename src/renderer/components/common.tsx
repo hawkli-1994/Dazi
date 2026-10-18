@@ -1,3 +1,4 @@
+import { runtimeErrorText } from '../i18n/errors';
 import { useState } from 'react';
 import { ArrowUpRight, Send, Circle, Check, AlertCircle, Pause, Clock } from 'lucide-react';
 import { Button } from '../../shared/components/ui/button';
@@ -64,7 +65,7 @@ export function Composer({
       drafts.delete(draftKey);
       setValue('');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t(language, 'networkError'));
+      setError(runtimeErrorText(language, cause));
     } finally {
       setSending(false);
     }
@@ -145,7 +146,7 @@ export function DecisionView({
     try {
       await workActions.resolveDecision(workId, decision.id, result);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t(language, 'networkError'));
+      setError(runtimeErrorText(language, cause));
     } finally {
       setBusy(false);
     }

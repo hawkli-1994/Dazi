@@ -5,7 +5,7 @@ on:
   pull_request:
   workflow_dispatch:
 
-# This workflow checks local demo UI only. It has no deployment or write steps.
+# Checks browser demo and controlled native-runtime fixtures. No deployment or write steps.
 permissions:
   contents: read
 

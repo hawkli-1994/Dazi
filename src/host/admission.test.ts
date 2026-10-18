@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Command, Wire } from '../shared/rpc/protocol';
 import { WorkDoc } from './documents';
 import { context, HostRuntime } from './runtime';
+import { parseClientMessage } from './transport';
 
 let runtime: HostRuntime;
 let path: string;
@@ -59,6 +60,36 @@ async function expectArchivedIdle(workId: string) {
 }
 
 describe('atomic ordering of archive and native admission', () => {
+  it('rejects alternate numeric spellings at the runtime and transport boundaries', async () => {
+    const { workId } = await runtime.createWork({
+      goal: 'Canonical ID',
+      directory: path,
+      requestId: 'canonical',
+    });
+    for (const alias of [
+      `0${workId}`,
+      `+${workId}`,
+      `${workId}.0`,
+      ` ${workId}`,
+      '0',
+      '9007199254740992',
+    ]) {
+      await expect(
+        runtime.submit({ workId: alias, text: 'Late input', requestId: alias }),
+      ).rejects.toThrow('WORK_NOT_FOUND');
+      await expect(archive(alias)).rejects.toThrow('WORK_NOT_FOUND');
+      expect(() =>
+        parseClientMessage({
+          type: Wire.Request,
+          id: 'invalid',
+          command: Command.Abort,
+          input: { workId: alias },
+        }),
+      ).toThrow('INVALID_INPUT');
+    }
+    expect((await runtime.documents(workId)).work.archived).toBe(false);
+    expect((await runtime.harness.inspect(context)).submissions).toEqual([]);
+  });
   it('does not let archive finish between a submit archive check and its admission', async () => {
     const { workId, paused, resume } = await pausedConversation();
     const submit = runtime.submit({

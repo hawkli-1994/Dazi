@@ -16,6 +16,7 @@ let connection: HostConnection;
 let path: string;
 let frames: HostEvent[];
 let autoAck: boolean;
+let autoNoticeAck: boolean;
 
 beforeEach(async () => {
   vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('No network in Host tests.'));
@@ -23,8 +24,12 @@ beforeEach(async () => {
   runtime = await HostRuntime.open({ storage: new MemoryStorage(), testProvider: true });
   frames = [];
   autoAck = true;
+  autoNoticeAck = true;
   connection = new HostConnection(runtime, (event) => {
     frames.push(structuredClone(event));
+    if (autoNoticeAck && (event.type === Wire.Catalog || event.type === Wire.Documents)) {
+      void connection.receive({ type: Wire.NoticeAck, noticeId: event.noticeId });
+    }
     if (autoAck && (event.type === Wire.Snapshot || event.type === Wire.Delta)) {
       void connection.receive({
         type: Wire.Ack,
@@ -57,6 +62,52 @@ async function subscribe(workId: string, subscriptionId = randomUUID()) {
 }
 
 describe('native MessagePort protocol', () => {
+  it('bounds catalog and document notifications to one unacknowledged frame each', async () => {
+    const workId = await create();
+    // Drain the initial catalog, then hold subsequent notice delivery independently of native ACK.
+    await vi.waitFor(() =>
+      expect(frames.some((event) => event.type === Wire.Catalog && event.works.length === 1)).toBe(
+        true,
+      ),
+    );
+    autoNoticeAck = false;
+    frames = [];
+    await subscribe(workId);
+    const conversation = await runtime.conversation(workId);
+    for (let index = 0; index < 30; index++) {
+      await conversation.commit(async (tx) => {
+        (await tx.doc(DossierDoc, conversation.id)).notes = [
+          { id: 'latest', text: String(index), sourceEntryId: '' },
+        ];
+      }, context);
+    }
+    await vi.waitFor(() =>
+      expect(frames.filter((event) => event.type === Wire.Catalog)).toHaveLength(1),
+    );
+    expect(frames.filter((event) => event.type === Wire.Documents)).toHaveLength(1);
+    const held = frames.filter(
+      (event) => event.type === Wire.Catalog || event.type === Wire.Documents,
+    );
+    autoNoticeAck = true;
+    for (const event of held)
+      await connection.receive({ type: Wire.NoticeAck, noticeId: event.noticeId });
+    await vi.waitFor(() => {
+      expect(
+        frames.some(
+          (event) => event.type === Wire.Documents && event.value.dossier.notes[0]?.text === '29',
+        ),
+      ).toBe(true);
+      expect(
+        frames.some(
+          (event) =>
+            event.type === Wire.Catalog &&
+            event.works[0]?.documents?.dossier.notes[0]?.text === '29',
+        ),
+      ).toBe(true);
+    });
+    expect(frames.filter((event) => event.type === Wire.Documents)).toHaveLength(2);
+    expect(frames.filter((event) => event.type === Wire.Catalog)).toHaveLength(2);
+  });
   it('sends the client-owned snapshot epoch and documents before changes', async () => {
     const workId = await create();
     const id = await subscribe(workId);

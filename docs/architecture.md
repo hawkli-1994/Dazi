@@ -199,3 +199,9 @@ docs/
 ## 11. UI-first 切片
 
 当前分支先实现 Renderer 的完整界面与内存演示适配器。`src/renderer/state` 的不可变视图是 UI 验证夹具，刷新即丢弃；不替代上文 Host 的唯一存储。创建工作、消息暂存、决定、档案和定时表单只改变演示投影，不执行工具、定时任务或模型请求。后续接入 Agent 时使用 Host 视图替换这个适配器，并单独完成 M0 安全及崩溃续跑验证。
+
+## 当前接入切片（2026-10-18）
+
+本节区分已实现与上文目标架构。Electron 44.9.0 Main 仅监管 utilityProcess 与安全窗口；Host 独占 SQLite 和 Pi Durable 1.3.0。Renderer 直接订阅 MessagePort 原生 watch/Chord 操作；自定义 Documents 独立 watchDoc，通知与对话帧都有有界背压。默认模型与工作创建去重索引也保存在原生 Document，不建第二套业务数据库。
+
+工作档案通过原生扩展 section 注入；可选工具维护计划/产物/档案。尚无独立模型后台整理、MCP 或后台子 Agent 扩展，不把规划能力写作已完成。简报由当前原生工作、待决项与提交终态投影，不额外生成虚构进展。细节、恢复语义与验收证据见 [接入记录](agent-integration.md)。
