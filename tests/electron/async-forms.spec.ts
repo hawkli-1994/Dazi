@@ -87,8 +87,8 @@ test('pending native form saves prevent edits until the real Host confirms', asy
       exact: true,
     });
     const time = page.getByLabel(t('zh', 'scheduleTime'), { exact: true });
-    const prompt = page.getByLabel(t('zh', 'schedulePrompt'), { exact: true });
-    const enabled = page.getByLabel(t('zh', 'scheduleEnabled'), { exact: true });
+    const prompt = page.getByRole('textbox', { name: t('zh', 'schedulePrompt'), exact: true });
+    const enabled = page.getByRole('checkbox', { name: t('zh', 'scheduleEnabled'), exact: true });
     for (const field of [frequency, time, prompt, enabled]) {
       await expect(field).toBeVisible();
       await expect(field).toBeEnabled();
