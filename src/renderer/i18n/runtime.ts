@@ -1,7 +1,7 @@
 import type { Language } from './index';
 const copy = {
   zh: {
-    connected: '工作会自动保存在本机，关闭窗口后仍可继续。',
+    connected: '工作会自动保存在本机。',
     reconnecting: '正在连接工作进程，已保存的工作不会丢失。',
     chooseFolder: '选择工作目录',
     schedule: '使用电脑本地时间；每周在周一运行。错过时只补最近一次。',
@@ -23,7 +23,7 @@ const copy = {
     configureFirst: '先到能力页选择可用模型，再开始交代任务。',
   },
   en: {
-    connected: 'Work is saved on this computer and can continue after the window closes.',
+    connected: 'Work is saved on this computer.',
     reconnecting: 'Connecting to the work process. Saved work is retained.',
     chooseFolder: 'Choose work folder',
     schedule:

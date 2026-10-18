@@ -37,19 +37,19 @@ This is real runtime execution with controlled model responses. It is not a live
 
 ## Acceptance checklist
 
-- [ ] Real utilityProcess/SQLite boot, restart and shutdown
-- [ ] No credential values enter Renderer, logs, fixtures or artifacts
-- [ ] Native snapshot/ops and root replacement; stale-epoch frames discarded
-- [ ] Bounded slow-consumer transport and repeated navigation cleanup
-- [ ] Text/reasoning/tool partials; stable identity, ordered blocks, no duplicate finals
-- [ ] Parallel tools, partial arguments, output truncation and persisted terminal errors
-- [ ] Abort during generation/tool, queued input withdrawal, distinct wait cancellation
-- [ ] Hard process kill and reopen, requestId dedupe, no unsafe side-effect replay
-- [ ] Native Document persistence, user corrections and approval recovery
-- [ ] Long Markdown/code/CJK streams, reduced motion and keyboard/IME guards
-- [ ] Host-backed browser and Electron interaction evidence, light/dark/narrow screenshots
+- [x] Real utilityProcess/SQLite boot, restart and shutdown
+- [x] No credential values enter Renderer, logs, fixtures or artifacts
+- [x] Native snapshot/ops and root replacement; stale-epoch frames discarded
+- [x] Bounded slow-consumer transport and repeated navigation cleanup
+- [x] Text/reasoning/tool partials; stable identity, ordered blocks, no duplicate finals
+- [x] Parallel tools, partial arguments, output truncation and persisted terminal errors
+- [x] Abort during generation/tool, queued input withdrawal, distinct wait cancellation
+- [x] Hard process kill and reopen, requestId dedupe, no unsafe side-effect replay
+- [x] Native Document persistence, user corrections and approval recovery
+- [x] Long Markdown/code/CJK streams, reduced motion and keyboard/IME guards
+- [x] Host-backed browser and Electron interaction evidence, light/dark/narrow screenshots
 - [ ] Typecheck/lint/format/unit/integration/build pass on final head
-- [ ] Live provider smoke performed or explicitly blocked by unavailable safe credentials
+- [x] Live provider smoke explicitly blocked by unavailable safe credentials (not executed)
 
 Provider-supplied reasoning content may be shown, collapsed by default. Hidden chain-of-thought is never fabricated or inferred. A disconnected transport, idle runtime and successful run are three different states.
 
@@ -70,3 +70,15 @@ Provider-supplied reasoning content may be shown, collapsed by default. Hidden c
 The user explicitly approved relaxing the ai-elements-only component rule on 2026-10-18. The implementation retains the approved UI and uses Streamdown directly for Markdown, with native Pi view projection. This reduces component/message translation; ai-elements itself does not require another Agent runtime.
 
 The parallel-tool regression generates events from the current published runtime on every run. Two tools complete out of order while native results retain exact call ownership and full output equality. Final assistant text is compared in full, not by prefix or fixture fingerprint.
+
+### Desktop evidence boundaries
+
+The headless Linux CI uses a real Electron browser and utilityProcess but has no system tray service. It verifies the no-tray fallback, not native macOS tray behavior. With a tray, closing the window hides it; without one, closing the final window quits and the next launch recovers saved work. A connected user desktop is still needed for a native tray/background smoke test.
+
+The published Anthropic adapter also has a credential-free injected SSE regression (`src/integration/anthropic-stream.test.ts`): split UTF-8 and partial JSON, public thinking, tool output/details, exact complete final text, native Chord reconstruction and a second request retaining the provider signature/tool result. Neither provider replay is a live API test.
+
+### Actual desktop checkpoint
+
+Commit `35d835bc7958b903fb35039156587862850c02ae`, [CI run 39104976671](https://github.com/hawkli-1994/Dazi/actions/runs/39104976671): browser 110/110; real Electron 7/9. Passing desktop scenarios include Host hard-kill/reopen, request deduplication with full final-text equality, model reconnect, explicit external-link clicks and light/dark/narrow native streaming/reload. Actual screenshots were inspected. Remaining failures at this checkpoint were an exact-label test locator and the blocked-navigation document assertion; subsequent commits address them. Final-head CI is recorded in the PR, and this checkpoint is not described as a green final run.
+
+Tool cancellation also runs the current Host with a live tool and queued follow-up, then native abort: both settle unanswered, partial output remains, no later output/final is fabricated and identical request IDs do not restart either submission.

@@ -3,7 +3,7 @@ import { ChevronRight, Check, Circle, CircleAlert, Minus } from 'lucide-react';
 import type { ToolResultMessage } from '@earendil-works/pi-ai';
 import type { ToolSlot } from '@earendil-works/pi-durable';
 import { agentText, type AgentLanguage } from '../../i18n/agent';
-import { AgentMarkdown, LocalImage } from './AgentMarkdown';
+import { LocalImage } from './AgentMarkdown';
 import {
   ContentType,
   ToolStatus,
@@ -95,9 +95,9 @@ export const ToolResult = memo(function ToolResult({
         <p className="agent-detail-label">{agentText(language, 'result')}</p>
         {result.content.map((content, index) =>
           content.type === ContentType.Text ? (
-            <AgentMarkdown key={index} language={language}>
-              {content.text}
-            </AgentMarkdown>
+            <pre key={index} className="agent-code" tabIndex={0}>
+              <code>{content.text}</code>
+            </pre>
           ) : (
             <LocalImage key={index} content={content} language={language} />
           ),

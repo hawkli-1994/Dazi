@@ -34,7 +34,14 @@ export async function launchDesktop(initialRoute?: string): Promise<{
   };
   try {
     application = await _electron.launch({
-      args: [resolve('.'), '--test-provider', `--dazi-user-data=${directory}`],
+      // Playwright otherwise adds --no-sandbox to Electron on Linux.
+      chromiumSandbox: true,
+      args: [
+        resolve('.'),
+        '--test-provider',
+        '--test-without-tray',
+        `--dazi-user-data=${directory}`,
+      ],
       env: {
         ...Object.fromEntries(
           // Do not inherit provider credentials, tokens, NODE_OPTIONS, or arbitrary

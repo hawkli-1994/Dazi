@@ -89,8 +89,14 @@ function createWindow(): BrowserWindow {
       latestNavigation = event.url;
       documentEpoch++;
       testDiagnostic('navigation-started', { navigations, url: event.url });
-      supervisor?.detachRenderer();
     }
+  });
+  // did-start-navigation precedes the cancellable will-frame-navigate event.
+  // A denied attempt leaves the current document and its port alive; revoke the
+  // reconnect intent only when a replacement main-frame document commits.
+  created.webContents.on('did-navigate', (_event, url) => {
+    testDiagnostic('navigation-committed', { url });
+    supervisor?.detachRenderer();
   });
   created.webContents.on('render-process-gone', (_event, details) => {
     testDiagnostic('renderer-exited', { reason: details.reason, exitCode: details.exitCode });
@@ -262,7 +268,9 @@ async function startDesktop(): Promise<void> {
     }
   });
 
-  tray = createTray(() => showWindow(window ?? createWindow()));
+  const testWithoutTray = testProvider && process.argv.includes('--test-without-tray');
+  tray = testWithoutTray ? null : createTray(() => showWindow(window ?? createWindow()));
+  testDiagnostic('tray-availability', { available: Boolean(tray) });
   createWindow();
   supervisor.start();
 }

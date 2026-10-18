@@ -5,8 +5,42 @@ import { crashHost, generation, latestView, launchDesktop, rpc } from './harness
 test('sandboxed desktop exposes only the minimal bridge and denies renderer escape routes', async () => {
   const desktop = await launchDesktop();
   try {
+    await desktop.application.evaluate(({ BrowserWindow }) => {
+      const contents = BrowserWindow.getAllWindows()[0].webContents;
+      const observations = {
+        blocked: [] as { url: string; prevented: boolean }[],
+        committed: [] as string[],
+        sent: [] as string[],
+        responses: [] as string[],
+        rendererExits: [] as string[],
+      };
+      Object.defineProperty(globalThis, 'navigationSecurityObservations', {
+        value: observations,
+        configurable: true,
+      });
+      // Observe after the production handlers without replacing their policy.
+      contents.on('will-frame-navigate', (event) => {
+        if (event.isMainFrame) {
+          observations.blocked.push({ url: event.url, prevented: event.defaultPrevented });
+        }
+      });
+      contents.on('did-navigate', (_event, url) => observations.committed.push(url));
+      contents.on('render-process-gone', (_event, details) => {
+        observations.rendererExits.push(details.reason);
+      });
+      const filter = { urls: ['http://*/*', 'https://*/*'] };
+      contents.session.webRequest.onSendHeaders(filter, (details) => {
+        observations.sent.push(details.url);
+      });
+      contents.session.webRequest.onResponseStarted(filter, (details) => {
+        observations.responses.push(details.url);
+      });
+    });
     await desktop.page.evaluate(() => {
       Object.defineProperty(window, 'rendererIsolationProbe', { value: 'main-world-only' });
+      Object.defineProperty(window, 'rendererShellProbe', {
+        value: document.querySelector('[data-testid="app-shell"]'),
+      });
     });
     const isolation = await desktop.application.evaluate(({ BrowserWindow }) =>
       BrowserWindow.getAllWindows()[0].webContents.executeJavaScriptInIsolatedWorld(999, [
@@ -15,6 +49,9 @@ test('sandboxed desktop exposes only the minimal bridge and denies renderer esca
     );
     expect(isolation).toBe('undefined');
     expect(await desktop.application.evaluate(() => process.versions.node)).toMatch(/^24\./);
+    expect(
+      await desktop.application.evaluate(({ app }) => app.commandLine.hasSwitch('no-sandbox')),
+    ).toBe(false);
     expect(await desktop.page.evaluate(() => Object.keys(window.daziDesktop ?? {}).sort())).toEqual(
       ['connectHost', 'onHostStatus', 'openExternal', 'selectFolder'],
     );
@@ -47,12 +84,110 @@ test('sandboxed desktop exposes only the minimal bridge and denies renderer esca
         ({ BrowserWindow }) => BrowserWindow.getAllWindows().length,
       ),
     ).toBe(1);
-    const before = desktop.page.url();
+    const before = await desktop.page.evaluate(() => location.href);
     await desktop.page.evaluate(() => {
       window.location.href = 'https://example.com/';
     });
-    await expect(desktop.page).toHaveURL(before);
+    const securityObservations = () =>
+      desktop.application.evaluate(() => Reflect.get(globalThis, 'navigationSecurityObservations'));
+    const blockedOnly = {
+      blocked: [{ url: 'https://example.com/', prevented: true }],
+      committed: [],
+      sent: [],
+      responses: [],
+      rendererExits: [],
+    };
+    await expect.poll(securityObservations).toEqual(blockedOnly);
+    // Electron cancels before Chromium sends a navigation request. Playwright
+    // can retain that provisional navigation, so toHaveURL's precheck waits
+    // forever without reading location. Read the real document and Main frame;
+    // do not reload, disable navigation checks, or intercept the attempted URL.
+    expect(
+      await desktop.application.evaluate(({ BrowserWindow }) => {
+        const contents = BrowserWindow.getAllWindows()[0].webContents;
+        return { url: contents.getURL(), frameUrl: contents.mainFrame.url };
+      }),
+    ).toEqual({ url: before, frameUrl: before });
+    expect(
+      await desktop.page.evaluate(() => ({
+        url: location.href,
+        identity: Reflect.get(window, 'rendererIsolationProbe'),
+        sameShell:
+          Reflect.get(window, 'rendererShellProbe') ===
+          document.querySelector('[data-testid="app-shell"]'),
+        ready: document.readyState,
+        shellVisible: Boolean(
+          document.querySelector('[data-testid="app-shell"]')?.getClientRects().length,
+        ),
+      })),
+    ).toEqual({
+      url: before,
+      identity: 'main-world-only',
+      sameShell: true,
+      ready: 'complete',
+      shellVisible: true,
+    });
+    expect(await rpc(desktop.page, Command.ListWorks, {})).toEqual([]);
+    expect(await securityObservations()).toEqual(blockedOnly);
+    // A blocked attempt must not discard the surviving document's automatic
+    // reconnect intent. No new explicit connectHost call repairs it here.
+    const previousGeneration = await generation(desktop.page);
+    await crashHost(desktop.application);
+    await expect
+      .poll(() => generation(desktop.page), { timeout: 30_000 })
+      .toBeGreaterThan(previousGeneration);
+    expect(await rpc(desktop.page, Command.ListWorks, {})).toEqual([]);
+    expect(await securityObservations()).toEqual(blockedOnly);
     await desktop.page.screenshot({ path: 'test-results/electron/desktop-shell.png' });
+  } finally {
+    await desktop.cleanup();
+  }
+});
+
+test('closing the native window without a tray gracefully exits an active Host', async () => {
+  const desktop = await launchDesktop();
+  const mainProcess = desktop.application.process();
+  let output = '';
+  mainProcess.stdout?.on('data', (chunk: Buffer) => {
+    output += chunk.toString();
+  });
+  try {
+    const created = await rpc(desktop.page, Command.CreateWork, {
+      goal: 'Close safely when no system tray is available',
+      directory: desktop.directory,
+      requestId: crypto.randomUUID(),
+    });
+    await rpc(desktop.page, Command.SubscribeWork, {
+      workId: created.workId,
+      subscriptionId: crypto.randomUUID(),
+    });
+    await rpc(desktop.page, Command.Submit, {
+      workId: created.workId,
+      text: '[test:slow]',
+      requestId: crypto.randomUUID(),
+    });
+    await expect
+      .poll(async () =>
+        JSON.stringify(await latestView(desktop.page, created.workId)).includes(
+          'Deterministic recoverable stream.',
+        ),
+      )
+      .toBe(true);
+    expect(await rpc(desktop.page, Command.ListWorks, {})).toEqual([
+      expect.objectContaining({ id: created.workId, busy: true }),
+    ]);
+    await Promise.all([
+      desktop.application.waitForEvent('close'),
+      desktop.application.evaluate(({ BrowserWindow }) => {
+        // Use the OS-window close path; application.close() would call app.quit
+        // directly and would not test the product's no-tray fallback.
+        setImmediate(() => BrowserWindow.getAllWindows()[0].close());
+      }),
+    ]);
+    expect(desktop.page.isClosed()).toBe(true);
+    await expect.poll(() => mainProcess.exitCode).toBe(0);
+    expect(mainProcess.signalCode).toBeNull();
+    await expect.poll(() => output).toContain('[DesktopTest] host-exited {"code":0}');
   } finally {
     await desktop.cleanup();
   }

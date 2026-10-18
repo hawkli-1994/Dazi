@@ -81,10 +81,21 @@ test('pending native form saves prevent edits until the real Host confirms', asy
     await expect(page.getByTestId('work-composer')).toBeEnabled();
 
     await page.getByRole('button', { name: t('zh', 'schedule'), exact: true }).click();
-    const frequency = page.getByLabel(t('zh', 'scheduleFrequency'), { exact: true });
+    // The wrapping label's text includes all options; use the select's computed accessible name.
+    const frequency = page.getByRole('combobox', {
+      name: t('zh', 'scheduleFrequency'),
+      exact: true,
+    });
     const time = page.getByLabel(t('zh', 'scheduleTime'), { exact: true });
     const prompt = page.getByLabel(t('zh', 'schedulePrompt'), { exact: true });
     const enabled = page.getByLabel(t('zh', 'scheduleEnabled'), { exact: true });
+    for (const field of [frequency, time, prompt, enabled]) {
+      await expect(field).toBeVisible();
+      await expect(field).toBeEnabled();
+    }
+    await expect(frequency).toHaveAccessibleName(t('zh', 'scheduleFrequency'));
+    await frequency.selectOption('weekdays');
+    await time.fill('15:30');
     await prompt.fill('Keep the submitted schedule text intact');
     await deferNextRequest(page, Command.SetSchedule);
     await page.getByRole('button', { name: t('zh', 'save'), exact: true }).click();
@@ -93,7 +104,9 @@ test('pending native form saves prevent edits until the real Host confirms', asy
       .toBe(true);
     for (const field of [frequency, time, prompt, enabled]) await expect(field).toBeDisabled();
     await releaseRequest(page);
-    await expect(prompt).toBeEnabled();
+    for (const field of [frequency, time, prompt, enabled]) await expect(field).toBeEnabled();
+    await expect(frequency).toHaveValue('weekdays');
+    await expect(time).toHaveValue('15:30');
     await expect(prompt).toHaveValue('Keep the submitted schedule text intact');
     await expect(page.getByText('已保存', { exact: true })).toBeVisible();
     // Scheduling remains disabled; this regression never triggers provider work.
