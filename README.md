@@ -50,13 +50,35 @@
 
 ## 文档
 
-| 文档 | 内容 |
-| --- | --- |
-| [AGENTS.md](AGENTS.md) | 给编码 Agent 和贡献者的仓库指南（`CLAUDE.md` 指向它） |
-| [DESIGN.md](DESIGN.md) | 设计格调与视觉规范 |
-| [docs/tech-stack.md](docs/tech-stack.md) | 技术选型与取舍 |
-| [docs/architecture.md](docs/architecture.md) | 技术方案：进程结构、数据模型、关键流程、里程碑 |
+| 文档                                         | 内容                                                  |
+| -------------------------------------------- | ----------------------------------------------------- |
+| [AGENTS.md](AGENTS.md)                       | 给编码 Agent 和贡献者的仓库指南（`CLAUDE.md` 指向它） |
+| [DESIGN.md](DESIGN.md)                       | 设计格调与视觉规范                                    |
+| [docs/tech-stack.md](docs/tech-stack.md)     | 技术选型与取舍                                        |
+| [docs/architecture.md](docs/architecture.md) | 技术方案：进程结构、数据模型、关键流程、里程碑        |
 
 ## 状态
 
-当前处于设计阶段，第一步是技术验证（M0），验收标准见 [docs/architecture.md](docs/architecture.md#里程碑)。
+当前先完成 UI，再接入 Agent。此分支提供可运行的水彩界面：欢迎、简报、工作对话与档案、能力、设置。所有示例明确标注，输入只留在当前内存中；刷新会重置，不连接模型、不访问文件、不执行任务。M0 Agent 验证尚未开始。
+
+## 运行界面
+
+Node 24.19+，Bun 1.4.3。
+
+```sh
+bun install --frozen-lockfile
+bun run dev
+```
+
+设置页可载入示例工作，体验待决定、进行中、完成、错误与空状态。浅色/深色/跟随系统和中文/英文可切换。
+
+```sh
+bun run typecheck
+bun run lint
+bun run format:check
+bun run test
+bun run build
+bun run test:e2e
+```
+
+浏览器测试需要 Playwright Chromium；CI 自动安装并上传截图与报告，不部署。

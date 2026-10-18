@@ -1,0 +1,70 @@
+@import 'tailwindcss';
+:root {
+  color-scheme: light;
+  --bg: #f7f3e9;
+  --surface: #fcf9f1;
+  --surface-muted: #eeeae2;
+  --border: #dad0c0;
+  --border-strong: #a89c88;
+  --text: #242d3b;
+  --text-secondary: #626773;
+  --text-tertiary: #767a81;
+  --ink: #4b608b;
+  --on-ink: #fffdf6;
+  --attention: #a7472c;
+  --attention-soft: #f6e9e3;
+  --success: #2e7657;
+  --danger: #b43932;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', 'Microsoft YaHei UI',
+    'Noto Sans CJK SC', sans-serif;
+  --font-reading: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'Noto Serif SC', Georgia, serif;
+  --font-mono: 'SF Mono', Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-reading: 1.0625rem;
+  --text-lg: 1.125rem;
+  --text-xl: 2rem;
+  --text-hero: 3rem;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 24px;
+  --radius-full: 9999px;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --reading-width: 720px;
+  --page-width: 1120px;
+  --art-opacity: 1;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #202733;
+  --surface: #28323f;
+  --surface-muted: #303b49;
+  --border: #485363;
+  --border-strong: #748197;
+  --text: #edeae4;
+  --text-secondary: #bac1cb;
+  --text-tertiary: #a2adbe;
+  --ink: #c4d0e8;
+  --on-ink: #202733;
+  --attention: #ef9a76;
+  --attention-soft: #49392f;
+  --success: #8ccbaa;
+  --danger: #ffaca3;
+  --art-opacity: 0.24;
+}
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --font-sans: var(--font-sans);
+}
