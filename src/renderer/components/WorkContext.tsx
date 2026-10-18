@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '../../shared/components/ui/button';
 import { Muted } from '../../shared/components/ui/typography';
 import { t, localize, type Language, type TranslationKey } from '../i18n';
-import { demoStore, ScheduleFrequency, type Work, type DossierEntry } from '../state';
+import { demoStore, WorkStatus, ScheduleFrequency, type Work, type DossierEntry } from '../state';
 const Tab = {
   Dossier: 'dossier',
   Artifacts: 'artifacts',
@@ -22,14 +22,17 @@ function DossierRow({
   const [value, setValue] = useState(localize(language, entry.content));
   return (
     <div className="context-item">
-      {editing ? (
+      {editing && work.status !== WorkStatus.Archived ? (
         <form
           className="flex flex-col gap-3"
           onSubmit={(event) => {
             event.preventDefault();
             if (value.trim()) {
-              demoStore.updateDossier(work.id, entry.id, value);
-              setEditing(false);
+              if (
+                demoStore.updateDossier(work.id, entry.id, value) ||
+                localize(language, entry.content) === value.trim()
+              )
+                setEditing(false);
             }
           }}
         >
@@ -60,6 +63,7 @@ function DossierRow({
           <Button
             size="small"
             variant="ghost"
+            disabled={work.status === WorkStatus.Archived}
             onClick={() => {
               setValue(localize(language, entry.content));
               setEditing(true);
@@ -85,74 +89,89 @@ function Schedule({ work, language }: { work: Work; language: Language }) {
       className="flex flex-col gap-4"
       onSubmit={(event) => {
         event.preventDefault();
-        if (enabled && !prompt.trim()) return;
-        demoStore.setSchedule(work.id, { frequency, time, prompt: prompt.trim(), enabled });
-        setSaved(true);
+        if (work.status === WorkStatus.Archived || (enabled && !prompt.trim())) return;
+        const changed = demoStore.setSchedule(work.id, {
+          frequency,
+          time,
+          prompt: prompt.trim(),
+          enabled,
+        });
+        setSaved(
+          changed ||
+            (work.schedule?.frequency === frequency &&
+              work.schedule?.time === time &&
+              work.schedule?.prompt === prompt.trim() &&
+              work.schedule?.enabled === enabled),
+        );
       }}
     >
       <Muted>{t(language, 'scheduleDemoHint')}</Muted>
-      <label className="flex gap-3 items-center">
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(event) => {
-            setEnabled(event.target.checked);
-            setSaved(false);
-          }}
-        />
-        {t(language, 'scheduleEnabled')}
-      </label>
-      <label className="field">
-        <span>{t(language, 'scheduleFrequency')}</span>
-        <select
-          className="select"
-          value={frequency}
-          onChange={(event) => {
-            setFrequency(event.target.value as ScheduleFrequency);
-            setSaved(false);
-          }}
-        >
-          {(
-            [
-              ['daily', 'scheduleDaily'],
-              ['weekdays', 'scheduleWeekdays'],
-              ['weekly', 'scheduleWeekly'],
-            ] as const
-          ).map(([value, key]) => (
-            <option value={value} key={value}>
-              {t(language, key)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="field">
-        <span>{t(language, 'scheduleTime')}</span>
-        <input
-          className="input"
-          type="time"
-          value={time}
-          required
-          onChange={(event) => {
-            setTime(event.target.value);
-            setSaved(false);
-          }}
-        />
-      </label>
-      <label className="field">
-        <span>{t(language, 'schedulePrompt')}</span>
-        <textarea
-          className="input"
-          value={prompt}
-          required={enabled}
-          onChange={(event) => {
-            setPrompt(event.target.value);
-            setSaved(false);
-          }}
-          placeholder={t(language, 'schedulePromptPlaceholder')}
-        />
-      </label>
-      <Button type="submit">{t(language, 'save')}</Button>
-      {saved && (
+      <fieldset className="flex flex-col gap-4" disabled={work.status === WorkStatus.Archived}>
+        <label className="flex gap-3 items-center">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(event) => {
+              setEnabled(event.target.checked);
+              setSaved(false);
+            }}
+          />
+          {t(language, 'scheduleEnabled')}
+        </label>
+        <label className="field">
+          <span>{t(language, 'scheduleFrequency')}</span>
+          <select
+            className="select"
+            value={frequency}
+            onChange={(event) => {
+              setFrequency(event.target.value as ScheduleFrequency);
+              setSaved(false);
+            }}
+          >
+            {(
+              [
+                ['daily', 'scheduleDaily'],
+                ['weekdays', 'scheduleWeekdays'],
+                ['weekly', 'scheduleWeekly'],
+              ] as const
+            ).map(([value, key]) => (
+              <option value={value} key={value}>
+                {t(language, key)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>{t(language, 'scheduleTime')}</span>
+          <input
+            className="input"
+            type="time"
+            value={time}
+            required
+            onChange={(event) => {
+              setTime(event.target.value);
+              setSaved(false);
+            }}
+          />
+        </label>
+        <label className="field">
+          <span>{t(language, 'schedulePrompt')}</span>
+          <textarea
+            className="input"
+            value={prompt}
+            required={enabled}
+            onChange={(event) => {
+              setPrompt(event.target.value);
+              setSaved(false);
+            }}
+            placeholder={t(language, 'schedulePromptPlaceholder')}
+          />
+        </label>
+        <Button type="submit" disabled={work.status === WorkStatus.Archived}>
+          {t(language, 'save')}
+        </Button>
+      </fieldset>
+      {saved && work.status !== WorkStatus.Archived && (
         <p className="muted" role="status">
           {t(language, 'scheduleSaved')}
         </p>

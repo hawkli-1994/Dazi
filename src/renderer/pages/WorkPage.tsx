@@ -94,6 +94,7 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
               key={decision.id}
               workId={work.id}
               decision={decision}
+              readOnly={work.status === WorkStatus.Archived}
               language={language}
             />
           ))}

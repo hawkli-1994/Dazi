@@ -113,10 +113,12 @@ export function DecisionView({
   workId,
   decision,
   language,
+  readOnly = false,
 }: {
   workId: string;
   decision: Decision;
   language: Language;
+  readOnly?: boolean;
 }) {
   return (
     <section className="decision" data-testid="decision">
@@ -135,6 +137,7 @@ export function DecisionView({
           <div className="flex flex-wrap gap-3">
             <Button
               variant="attention"
+              disabled={readOnly}
               onClick={() =>
                 demoStore.resolveDecision(workId, decision.id, DecisionStatus.Approved)
               }
@@ -143,6 +146,7 @@ export function DecisionView({
             </Button>
             <Button
               variant="ghost"
+              disabled={readOnly}
               onClick={() =>
                 demoStore.resolveDecision(workId, decision.id, DecisionStatus.Declined)
               }

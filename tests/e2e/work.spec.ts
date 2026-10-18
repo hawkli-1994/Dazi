@@ -1,4 +1,4 @@
-import { capture, expect, loadDemo, test } from './fixtures';
+import { capture, createWork, expect, loadDemo, test } from './fixtures';
 
 for (const decision of [
   { name: 'approval', button: '就从这个方向开始', result: '已记录：同意这个方向' },
@@ -96,4 +96,38 @@ test('archive can be cancelled and disables further submissions after confirmati
   await expect(page.getByTestId('work-composer')).toBeDisabled();
   await expect(page.getByRole('main')).toContainText('归档工作不能继续添加消息');
   await capture(page, testInfo, '23-archived-work');
+});
+
+test('disabled schedules save empty prompts and archived context is read-only', async ({
+  page,
+}) => {
+  await createWork(page);
+  const workUrl = page.url();
+  const toggle = page.getByTestId('work-record-toggle');
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
+  let panel = page.locator('#work-record');
+  await panel.getByRole('button', { name: '定时推进', exact: true }).click();
+  await panel.getByLabel('时间', { exact: true }).fill('11:45');
+  await panel.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(panel.getByRole('status')).toContainText('已保存');
+  await page.goto('/#/');
+  await page.goto(workUrl);
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
+  await panel.getByRole('button', { name: '定时推进', exact: true }).click();
+  await expect(panel.getByLabel('时间', { exact: true })).toHaveValue('11:45');
+  await expect(panel.getByLabel('启用定时推进')).not.toBeChecked();
+  await loadDemo(page);
+  await page.goto('/#/work/brand-website');
+  await page.getByRole('button', { name: '归档工作', exact: true }).click();
+  await page.getByRole('button', { name: '归档工作', exact: true }).click();
+  const decision = page.getByTestId('decision');
+  for (const button of await decision.getByRole('button').all())
+    await expect(button).toBeDisabled();
+  if ((await toggle.getAttribute('aria-expanded')) === 'false') await toggle.click();
+  panel = page.locator('#work-record');
+  for (const button of await panel.getByRole('button', { name: '修改', exact: true }).all())
+    await expect(button).toBeDisabled();
+  await panel.getByRole('button', { name: '定时推进', exact: true }).click();
+  await expect(panel.getByLabel('启用定时推进')).toBeDisabled();
+  await expect(panel.getByRole('button', { name: '保存', exact: true })).toBeDisabled();
 });

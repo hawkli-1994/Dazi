@@ -66,8 +66,8 @@ function validSchedule(schedule: WorkSchedule): boolean {
   return (
     Object.values(ScheduleFrequency).includes(schedule.frequency) &&
     /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(schedule.time) &&
-    schedule.prompt.trim().length > 0 &&
-    typeof schedule.enabled === 'boolean'
+    typeof schedule.enabled === 'boolean' &&
+    (!schedule.enabled || schedule.prompt.trim().length > 0)
   );
 }
 

@@ -52,7 +52,7 @@ export function App() {
       <header className="header">
         <a className="brand" href="#/" aria-label={t(state.language, 'appName')}>
           <Orbit aria-hidden="true" />
-          <span>{t(state.language, 'appName')} · Dazi</span>
+          <span>{state.language === 'zh' ? '搭子 · Dazi' : 'Dazi'}</span>
         </a>
         <nav className="nav" aria-label={t(state.language, 'works')}>
           {nav.map(([href, key]) => (

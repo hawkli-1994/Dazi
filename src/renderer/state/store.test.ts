@@ -210,6 +210,51 @@ describe('memory-only demo store', () => {
     expect(getWork(store).schedule).toBeNull();
   });
 
+  it('saves a disabled schedule without a prompt and rejects enabling it until a prompt is added', () => {
+    const store = makeStore();
+    const listener = vi.fn();
+    store.subscribe(listener);
+    const disabled: WorkSchedule = {
+      frequency: ScheduleFrequency.Daily,
+      time: '09:00',
+      prompt: '  ',
+      enabled: false,
+    };
+    const before = store.getSnapshot();
+    expect(store.setSchedule(workId, disabled)).toBe(true);
+    expect(store.getSnapshot()).not.toBe(before);
+    expect(getWork(store).schedule).toEqual({ ...disabled, prompt: '' });
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    const saved = store.getSnapshot();
+    expect(store.setSchedule(workId, { ...disabled, prompt: '' })).toBe(false);
+    expect(store.setSchedule(workId, { ...disabled, enabled: true })).toBe(false);
+    expect(store.getSnapshot()).toBe(saved);
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    expect(
+      store.setSchedule(workId, { ...disabled, enabled: true, prompt: 'Review progress' }),
+    ).toBe(true);
+    expect(getWork(store).schedule?.enabled).toBe(true);
+    expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('still validates frequency and time when a schedule is disabled', () => {
+    const store = makeStore();
+    const before = store.getSnapshot();
+    const disabled: WorkSchedule = {
+      frequency: ScheduleFrequency.Daily,
+      time: '09:00',
+      prompt: '',
+      enabled: false,
+    };
+    expect(store.setSchedule(workId, { ...disabled, time: '25:00' })).toBe(false);
+    expect(
+      store.setSchedule(workId, { ...disabled, frequency: 'invalid' as WorkSchedule['frequency'] }),
+    ).toBe(false);
+    expect(store.getSnapshot()).toBe(before);
+  });
+
   it('archives work, disables schedules, and rejects later mutations', () => {
     const store = makeStore();
     expect(store.archive('weekly-insights')).toBe(true);

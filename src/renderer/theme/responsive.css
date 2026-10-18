@@ -130,11 +130,6 @@
 .work-page {
   max-width: 1040px;
 }
-@media (min-width: 1101px) {
-  .nav {
-    margin-right: min(28vw, 380px);
-  }
-}
 @media (max-width: 640px) {
   .welcome-title {
     text-wrap: balance;
@@ -174,5 +169,26 @@
       linear-gradient(to top, black 55%, transparent),
       linear-gradient(to right, black 45%, transparent);
     mask-composite: intersect;
+  }
+}
+@media (min-width: 641px) {
+  .welcome {
+    justify-content: flex-start;
+    padding-top: clamp(120px, calc(32vh - 134px), 220px);
+  }
+  .welcome .composer {
+    margin-top: var(--space-12);
+  }
+}
+@media (min-width: 1101px) {
+  .nav {
+    margin-right: min(40vw, 640px);
+  }
+}
+@media (min-width: 1440px) {
+  .app-shell:not(.is-welcome) .art::after {
+    width: 220px;
+    height: 400px;
+    background-size: 768px 512px;
   }
 }

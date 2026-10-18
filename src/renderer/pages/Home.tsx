@@ -3,7 +3,7 @@ import { Button } from '../../shared/components/ui/button';
 import { Title, SectionTitle, Muted } from '../../shared/components/ui/typography';
 import { Composer, DecisionView, OpenWork, Status, navigate } from '../components/common';
 import { t, localize, type Language, type TranslationKey } from '../i18n';
-import { DecisionStatus, WorkStatus, type Work } from '../state';
+import { DecisionStatus, WorkStatus, PlanStatus, type Work } from '../state';
 export function Home({ works, language }: { works: readonly Work[]; language: Language }) {
   const active = works.filter((work) => work.status !== WorkStatus.Archived);
   if (!works.length)
@@ -118,17 +118,20 @@ export function Home({ works, language }: { works: readonly Work[]; language: La
           <SectionTitle>{t(language, 'nextSteps')}</SectionTitle>
           <ul className="timeline mt-6">
             {active.flatMap((work) =>
-              work.plan.slice(0, 1).map((item) => (
-                <li key={item.id}>
-                  <p className="reading">{localize(language, item.title)}</p>
-                  <div className="mt-2">
-                    <OpenWork id={work.id} language={language} />
-                  </div>
-                </li>
-              )),
+              work.plan
+                .filter((item) => item.status !== PlanStatus.Done)
+                .slice(0, 1)
+                .map((item) => (
+                  <li key={item.id}>
+                    <p className="reading">{localize(language, item.title)}</p>
+                    <div className="mt-2">
+                      <OpenWork id={work.id} language={language} />
+                    </div>
+                  </li>
+                )),
             )}
           </ul>
-          {!active.some((work) => work.plan.length) && (
+          {!active.some((work) => work.plan.some((item) => item.status !== PlanStatus.Done)) && (
             <Muted className="mt-4">{t(language, 'noNextSteps')}</Muted>
           )}
           {works.some((work) => work.status === WorkStatus.Archived) && (
