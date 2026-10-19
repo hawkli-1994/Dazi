@@ -30,6 +30,7 @@ const paths = await packager({
   out: resolve('out'),
   name: 'Dazi',
   appBundleId: 'io.dazi.desktop',
+  win32metadata: { CompanyName: 'Dazi' },
   platform: process.platform,
   arch: process.arch,
   electronVersion: metadata.devDependencies.electron,
