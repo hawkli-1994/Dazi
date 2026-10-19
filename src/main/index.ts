@@ -10,12 +10,13 @@ import {
   utilityProcess,
   type Tray,
 } from 'electron';
-import { isAbsolute, join } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { DesktopChannel, externalWebUrl, HostControl } from '../shared/rpc/desktop';
 import { HostSupervisor } from './host-supervisor';
 import { createTray, showWindow } from './native-ui';
 import { isSupersededLoadAbort, navigationErrorCode } from './navigation';
+import { userDataDirectory } from './profile';
 import {
   allowsRendererRequest,
   AppScheme,
@@ -30,12 +31,8 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const rendererRoot = join(root, 'dist');
 const entry = rendererEntry(process.env.DAZI_RENDERER_URL, app.isPackaged);
 const testProvider = !app.isPackaged && process.argv.includes('--test-provider');
-const testUserData = process.argv.find((argument) => argument.startsWith('--dazi-user-data='));
-if (testProvider && testUserData) {
-  const path = testUserData.slice('--dazi-user-data='.length);
-  if (!isAbsolute(path)) throw new Error('Test user data directory must be absolute.');
-  app.setPath('userData', path);
-}
+const profile = userDataDirectory(process.argv);
+if (profile) app.setPath('userData', profile);
 
 protocol.registerSchemesAsPrivileged([
   { scheme: AppScheme, privileges: { standard: true, secure: true, supportFetchAPI: true } },

@@ -63,6 +63,8 @@ Agent 接入分支保留已验收的水彩界面，并加入 Electron 桌面壳�
 
 实现与验证边界见 [Agent 接入记录](docs/agent-integration.md)。受控官方协议回放不是在线模型验收；真实供应商 API 冒烟仍需用户本机安全配置凭据后执行。
 
+桌面构建者可运行 `bun run package:desktop`，产出自带运行时的未签名试用包和校验文件；使用者解压后即可启动，无需开发工具。独立数据目录、环境配置、系统限制与 CI 制品见 [桌面打包说明](docs/desktop-packaging.md)。尚无签名、公证、安装器或自动更新。
+
 ## 运行
 
 Node 24.22.0（与 Electron 内置版本一致），Bun 1.4.3。
@@ -88,4 +90,4 @@ bun run build:desktop
 bun run test:electron
 ```
 
-浏览器测试需要 Playwright Chromium；Linux Electron 测试需要显示服务（CI 使用 xvfb）。CI 上传实际截图与报告，不部署。Electron 测试显式启用受控模型，只在临时目录操作，不使用真实凭据。
+浏览器测试需要 Playwright Chromium。原生 Electron 回归在 macOS CI 运行；生产包搬移启动检查覆盖 macOS 两种架构与 Windows x64。Linux Electron 仍需有显示服务和可用的 Chromium sandbox，不列为已验证目标。CI 上传实际截图、报告与未签名试用包，不部署。测试仅在临时目录操作，不使用真实凭据；开发桌面回归启用受控模型，生产包始终禁用测试模型。

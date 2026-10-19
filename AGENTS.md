@@ -21,7 +21,7 @@
 
 ## 命令
 
-UI 与桌面接入脚手架已建立：`bun run dev`、`bun run build`、`bun run typecheck`、`bun run lint`、`bun run format:check`、`bun run test`、`bun run test:e2e`、`bun run build:desktop`、`bun run desktop`、`bun run test:electron`。Electron/Agent 已接入；签名打包与发布尚未启用。约定：
+UI 与桌面接入脚手架已建立：`bun run dev`、`bun run build`、`bun run typecheck`、`bun run lint`、`bun run format:check`、`bun run test`、`bun run test:e2e`、`bun run build:desktop`、`bun run desktop`、`bun run test:electron`。`bun run package:desktop` 构建当前平台未签名试用包，`bun run test:package` 搬移启动并检查隔离数据恢复；详见 [打包说明](docs/desktop-packaging.md)。Electron/Agent 已接入；签名、安装器、自动更新与发布尚未启用。约定：
 
 - 包管理只用 Bun（`bun install`、`bun.lock`）；脚本可用 npm 运行。
 - Node 版本与 Electron 内置 Node 保持一致，且 ≥ 22.19。

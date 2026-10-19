@@ -2,8 +2,8 @@ import { test, type ElectronApplication, type Page } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
-/** Only attached to the explicit credential-free faux-provider test process. */
-export function fixtureDiagnostics() {
+/** Only attached to isolated test processes with credential-free environment allowlists. */
+export function fixtureDiagnostics(name = 'electron-lifecycle') {
   const info = test.info();
   const lines: string[] = [];
   let length = 0;
@@ -36,10 +36,10 @@ export function fixtureDiagnostics() {
       );
     },
     async save(): Promise<void> {
-      const path = info.outputPath('electron-lifecycle.log');
+      const path = info.outputPath(`${name}.log`);
       await mkdir(dirname(path), { recursive: true });
       await writeFile(path, lines.join(''));
-      await info.attach('electron-lifecycle', { path, contentType: 'text/plain' });
+      await info.attach(name, { path, contentType: 'text/plain' });
     },
   };
 }

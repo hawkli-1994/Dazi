@@ -6,6 +6,7 @@ coverage/
 .DS_Store
 
 dist-desktop/
+out/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
