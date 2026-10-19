@@ -15,29 +15,33 @@ type SmokeState = {
 };
 type SmokeWindow = Window & { electronSmoke?: SmokeState };
 
-export async function launchDesktop(initialRoute?: string): Promise<{
+export async function launchDesktop(
+  initialRoute?: string,
+  options: { executablePath?: string; directory?: string; diagnosticName?: string } = {},
+): Promise<{
   application: ElectronApplication;
   page: Page;
   directory: string;
   cleanup(): Promise<void>;
 }> {
-  const directory = await mkdtemp(join(tmpdir(), 'dazi-electron-'));
-  const diagnostics = fixtureDiagnostics();
+  const directory = options.directory ?? (await mkdtemp(join(tmpdir(), 'dazi-electron-')));
+  const diagnostics = fixtureDiagnostics(options.diagnosticName);
   let application: ElectronApplication | undefined;
   const cleanup = async () => {
     try {
       await application?.close();
     } finally {
       await diagnostics.save();
-      await rm(directory, { recursive: true, force: true });
+      if (!options.directory) await rm(directory, { recursive: true, force: true });
     }
   };
   try {
     application = await _electron.launch({
+      executablePath: options.executablePath,
       // Playwright otherwise adds --no-sandbox to Electron on Linux.
       chromiumSandbox: true,
       args: [
-        resolve('.'),
+        ...(options.executablePath ? [] : [resolve('.')]),
         '--test-provider',
         '--test-without-tray',
         `--dazi-user-data=${directory}`,

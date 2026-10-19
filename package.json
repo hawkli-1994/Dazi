@@ -16,7 +16,9 @@
     "test:e2e": "playwright test",
     "build:desktop": "bun scripts/build-desktop.mjs",
     "desktop": "bun run build && bun run build:desktop && electron .",
-    "test:electron": "playwright test --config=tests/electron/playwright.config.ts"
+    "test:electron": "playwright test --config=tests/electron/playwright.config.ts",
+    "package:desktop": "bun run build && bun run build:desktop && bun scripts/package-desktop.mjs",
+    "test:package": "playwright test --config=tests/package/playwright.config.ts"
   },
   "dependencies": {
     "@base-ui/react": "1.6.0",
@@ -33,6 +35,7 @@
     "tailwind-merge": "3.6.0"
   },
   "devDependencies": {
+    "@electron/packager": "20.3.0",
     "@playwright/test": "1.62.1",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "24.13.3",

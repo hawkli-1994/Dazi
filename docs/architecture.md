@@ -205,3 +205,7 @@ docs/
 本节区分已实现与上文目标架构。Electron 44.9.0 Main 仅监管 utilityProcess 与安全窗口；Host 独占 SQLite 和 Pi Durable 1.3.0。Renderer 直接订阅 MessagePort 原生 watch/Chord 操作；自定义 Documents 独立 watchDoc，通知与对话帧都有有界背压。默认模型与工作创建去重索引也保存在原生 Document，不建第二套业务数据库。
 
 工作档案通过原生扩展 section 注入；可选工具维护计划/产物/档案。尚无独立模型后台整理、MCP 或后台子 Agent 扩展，不把规划能力写作已完成。简报由当前原生工作、待决项与提交终态投影，不额外生成虚构进展。细节、恢复语义与验收证据见 [接入记录](agent-integration.md)。
+
+## 桌面打包切片（2026-10-19）
+
+M3 先推进可启动的未签名试用包：锁定官方 Electron Packager，显式白名单收集构建输出和生产依赖，使用 ASAR，记录构建来源并提供归档校验。Main 在打开存储和获取单实例锁之前解析独立数据目录参数；Host 仍为唯一存储拥有者。正式包忽略受控模型开关。CI 在 macOS 两种架构与 Windows x64 检查搬移后的应用启动、缺少模型的提交恢复、Host 重启与退出再启动。尚无签名/公证、安装器或自动更新；M3 整体仍未完成。命令与边界见 [桌面打包说明](desktop-packaging.md)。

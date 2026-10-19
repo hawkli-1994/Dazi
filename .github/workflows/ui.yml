@@ -91,3 +91,46 @@ jobs:
           path: test-results/
           if-no-files-found: warn
           retention-days: 14
+
+  package:
+    name: Package and launch (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [macos-15, macos-15-intel, windows-2025]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.22.0'
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - name: Install locked dependencies
+        run: bun install --frozen-lockfile
+      - name: Build unsigned application and trial archive
+        run: bun run package:desktop
+      - name: Launch relocated production package with isolated storage
+        run: bun run test:package
+      - name: Upload unsigned trial archive and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: dazi-unsigned-${{ matrix.runner }}-${{ github.sha }}
+          path: |
+            out/*.tar.gz
+            out/*.sha256
+            out/*/build-info.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload package launch captures and diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dazi-package-review-${{ matrix.runner }}-${{ github.sha }}
+          path: test-results/
+          if-no-files-found: warn
+          retention-days: 14
