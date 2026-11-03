@@ -1,6 +1,7 @@
 import { runtimeErrorText } from '../i18n/errors';
 import { useState } from 'react';
 import { ArrowUpRight, Send, Circle, Check, AlertCircle, Pause, Clock } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '../../shared/components/ui/button';
 import { t, localize, type Language, type TranslationKey } from '../i18n';
 import { WorkStatus, DecisionStatus, type Decision } from '../state';
@@ -83,9 +84,10 @@ export function Composer({
           {error}
         </p>
       )}
-      <textarea
+      <Textarea
         data-testid="work-composer"
         rows={1}
+        className="min-h-11 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
         aria-label={t(language, welcome ? 'welcomePlaceholder' : 'composerPlaceholder')}
         placeholder={t(language, welcome ? 'welcomePlaceholder' : 'composerPlaceholder')}
         value={value}

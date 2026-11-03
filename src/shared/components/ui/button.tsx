@@ -1,28 +1,45 @@
-import { Button as BaseButton } from '@base-ui/react/button';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+import type { ComponentProps } from 'react';
+import { Button as LooseleafButton } from '@/components/ui/button';
+
+type LooseleafButtonProps = ComponentProps<typeof LooseleafButton>;
+type LegacyVariant =
+  | 'primary'
+  | 'secondary'
+  | 'ghost'
+  | 'attention'
+  | 'danger'
+  | LooseleafButtonProps['variant'];
+type LegacySize = 'default' | 'small' | 'icon' | LooseleafButtonProps['size'];
+
+const variantMap = {
+  primary: 'default',
+  attention: 'default',
+  danger: 'destructive',
+  secondary: 'secondary',
+  ghost: 'ghost',
+} as const;
+
+const sizeMap = {
+  default: 'default',
+  small: 'sm',
+  icon: 'icon',
+} as const;
+
+export type ButtonProps = Omit<LooseleafButtonProps, 'variant' | 'size'> & {
+  variant?: LegacyVariant;
+  size?: LegacySize;
+};
+
+export function Button({ variant = 'secondary', size = 'default', ...props }: ButtonProps) {
+  const mappedVariant =
+    variant && variant in variantMap
+      ? variantMap[variant as keyof typeof variantMap]
+      : (variant as LooseleafButtonProps['variant']);
+  const mappedSize =
+    size && size in sizeMap
+      ? sizeMap[size as keyof typeof sizeMap]
+      : (size as LooseleafButtonProps['size']);
+  return <LooseleafButton variant={mappedVariant} size={mappedSize} {...props} />;
 }
-const variants = cva('button', {
-  variants: {
-    variant: {
-      primary: 'button-primary',
-      secondary: 'button-secondary',
-      ghost: 'button-ghost',
-      attention: 'button-attention',
-      danger: 'button-danger',
-    },
-    size: { default: '', icon: 'button-icon', small: 'button-small' },
-  },
-  defaultVariants: { variant: 'secondary', size: 'default' },
-});
-export function Button({
-  className,
-  variant,
-  size,
-  ...props
-}: BaseButton.Props & VariantProps<typeof variants>) {
-  return <BaseButton className={cn(variants({ variant, size }), className)} {...props} />;
-}
+
+export { cn } from '@/lib/utils';

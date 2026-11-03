@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { NativeSelect } from '@/components/ui/native-select';
 import { Button } from '../../shared/components/ui/button';
 import { Title, Muted } from '../../shared/components/ui/typography';
 import { t, type Language } from '../i18n';
@@ -29,8 +30,7 @@ export function Settings({
         </div>
         <label className="field">
           <span className="sr-only">{t(language, 'theme')}</span>
-          <select
-            className="select"
+          <NativeSelect
             data-testid="theme-select"
             value={theme}
             onChange={(event) => setTheme(event.target.value as Theme)}
@@ -38,7 +38,7 @@ export function Settings({
             <option value={Theme.Light}>{t(language, 'themeLight')}</option>
             <option value={Theme.Dark}>{t(language, 'themeDark')}</option>
             <option value={Theme.System}>{t(language, 'themeSystem')}</option>
-          </select>
+          </NativeSelect>
         </label>
       </section>
       <section className="setting-row">
@@ -48,15 +48,14 @@ export function Settings({
         </div>
         <label className="field">
           <span className="sr-only">{t(language, 'language')}</span>
-          <select
-            className="select"
+          <NativeSelect
             data-testid="locale-select"
             value={language}
             onChange={(event) => demoStore.setLanguage(event.target.value as Language)}
           >
             <option value="zh">简体中文</option>
             <option value="en">English</option>
-          </select>
+          </NativeSelect>
         </label>
       </section>
       {!isDesktop() && (

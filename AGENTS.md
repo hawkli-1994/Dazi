@@ -48,7 +48,7 @@ UI 与桌面接入脚手架已建立：`bun run dev`、`bun run build`、`bun ru
 
 - **一套主题**，浅色 / 深色 / 跟随系统。不做主题包、外观设置或换肤。
 - 视觉值（颜色、字号、圆角、阴影、间距档位）只存在于 `src/renderer/theme/` 的 CSS 变量 token 和共享组件的 variant 中。页面和业务组件只写布局类（flex、grid、gap、宽高约束、滚动）。
-- 保留已验收 UI；基础控件用 shadcn/ui（Base UI），流式 Markdown 使用 Streamdown，消息/推理/工具状态直接消费 Pi Durable 原生结构化视图。现有 ai-elements 组合组件可沿用，但不是强制来源。图标用 `lucide-react`。先复用现成组件，再扩展 variant，最后才新建。
+- 基础控件用 Looseleaf（`components.json` registry → `src/components/ui`），根节点包 `InkProvider`。流式 Markdown 使用 Streamdown；消息/推理/工具状态直接消费 Pi Durable 原生结构化视图。ai-elements 可沿用作 Markdown 壳，但不是强制来源。图标用 `lucide-react`。先复用 Looseleaf 组件与 variant，不叠自定义水彩/terracotta 主题。
 - 结构组合用 Tailwind `className` + `cn()`。
 - 采用 DESIGN.md 的原创水彩边缘插画与暖纸阅读面；不加光晕、彩色卡片、嵌套卡片或多余动效；动效遵守 `prefers-reduced-motion`。
 - 每个界面必须在实际渲染中检查：浅色 / 深色、窄窗口、长文本、空状态、加载与错误、键盘焦点。

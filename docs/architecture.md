@@ -167,7 +167,7 @@ src/
     theme/         CSS 变量 token（浅色 / 深色）
   shared/
     rpc/           命令、事件类型与常量
-    components/    shadcn/ui、ai-elements
+    components/    Looseleaf（ui）、ai-elements
 docs/
 ```
 

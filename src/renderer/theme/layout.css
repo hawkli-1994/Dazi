@@ -3,9 +3,9 @@
 }
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font-sans);
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-hand);
   font-size: var(--text-base);
 }
 button,
@@ -52,54 +52,6 @@ svg {
   position: relative;
   isolation: isolate;
   min-height: 100dvh;
-}
-.art {
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  pointer-events: none;
-  background: url('/art/watercolor.webp') center / cover no-repeat;
-  opacity: var(--art-opacity);
-}
-.app-shell:not(.is-welcome) .art {
-  background: none;
-  opacity: 1;
-}
-.app-shell:not(.is-welcome) .art::before,
-.app-shell:not(.is-welcome) .art::after {
-  content: '';
-  position: absolute;
-  background-image: url('/art/watercolor.webp');
-  background-repeat: no-repeat;
-  opacity: var(--art-opacity);
-  pointer-events: none;
-}
-.app-shell:not(.is-welcome) .art::before {
-  top: 0;
-  right: 0;
-  width: 300px;
-  height: 240px;
-  background-size: 768px 512px;
-  background-position: right top;
-  mask-image:
-    linear-gradient(to bottom, black 50%, transparent 100%),
-    linear-gradient(to left, black 50%, transparent 100%);
-  mask-composite: intersect;
-}
-.app-shell:not(.is-welcome) .art::after {
-  bottom: 0;
-  left: 0;
-  width: 160px;
-  height: 300px;
-  background-size: 600px 400px;
-  background-position: left bottom;
-  mask-image:
-    linear-gradient(to top, black 40%, transparent 100%),
-    linear-gradient(to right, black 25%, transparent 100%);
-  mask-composite: intersect;
-}
-:root[data-theme='dark'] .is-welcome .art {
-  mask-image: radial-gradient(ellipse at center, transparent 30%, black 85%);
 }
 .header {
   min-height: 100px;

@@ -1,6 +1,15 @@
 import { runtimeErrorText } from '../i18n/errors';
-import { useEffect, useState, useSyncExternalStore } from 'react';
-import { Dialog } from '@base-ui/react/dialog';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  Dialog,
+  DialogBody,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '../../shared/components/ui/button';
 import { Title, Muted } from '../../shared/components/ui/typography';
 import {
@@ -41,6 +50,7 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
     return () => media.removeEventListener('change', update);
   }, []);
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const recordToggleRef = useRef<HTMLButtonElement>(null);
   if (!work)
     return (
       <main className="page page-narrow">
@@ -62,6 +72,7 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
           </div>
         </div>
         <Button
+          ref={recordToggleRef}
           data-testid="work-record-toggle"
           aria-expanded={showRecord}
           aria-controls="work-record"
@@ -202,23 +213,31 @@ export function WorkPage({ work, language }: { work: Work | undefined; language:
         {showRecord && !narrow && <WorkContext key={work.id} work={work} language={language} />}
       </div>
       {narrow && (
-        <Dialog.Root open={showRecord} onOpenChange={setShowRecord}>
-          <Dialog.Portal>
-            <Dialog.Backdrop className="drawer-backdrop" />
-            <Dialog.Popup className="drawer">
-              <div className="flex justify-between gap-4 items-center">
-                <Dialog.Title className="section-title">{t(language, 'dossier')}</Dialog.Title>
-                <Dialog.Close className="button button-secondary">
-                  {t(language, 'close')}
-                </Dialog.Close>
-              </div>
-              <Dialog.Description className="sr-only">
+        <Dialog open={showRecord} onOpenChange={setShowRecord}>
+          <DialogContent
+            className="max-w-lg"
+            showCloseButton={false}
+            onCloseAutoFocus={(event) => {
+              event.preventDefault();
+              recordToggleRef.current?.focus();
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>{t(language, 'dossier')}</DialogTitle>
+              <DialogDescription className="sr-only">
                 {t(language, 'showDossier')}
-              </Dialog.Description>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogBody>
               <WorkContext key={work.id} work={work} language={language} />
-            </Dialog.Popup>
-          </Dialog.Portal>
-        </Dialog.Root>
+            </DialogBody>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">{t(language, 'close')}</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </main>
   );

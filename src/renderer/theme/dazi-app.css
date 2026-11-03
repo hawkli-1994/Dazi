@@ -1,0 +1,65 @@
+/* Maps legacy layout tokens to Looseleaf semantic variables for existing layout CSS. */
+:root,
+[data-theme] {
+  --bg: var(--background);
+  --surface: var(--card);
+  --surface-muted: var(--muted);
+  --border: color-mix(in srgb, var(--border) 70%, transparent);
+  --border-strong: var(--border);
+  --text: var(--foreground);
+  --text-secondary: var(--muted-foreground);
+  --text-tertiary: var(--muted-foreground);
+  --ink: var(--primary);
+  --on-ink: var(--primary-foreground);
+  --attention: var(--primary);
+  --attention-soft: var(--accent);
+  --success: var(--ll-green);
+  --danger: var(--destructive);
+  --font-sans: var(--font-hand);
+  --font-reading: var(--font-hand);
+  --font-mono: var(--font-mono);
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-reading: 1.0625rem;
+  --text-lg: 1.125rem;
+  --text-xl: 2rem;
+  --text-hero: clamp(2rem, 5vw, 3rem);
+  --radius-sm: var(--radius);
+  --radius-md: calc(var(--radius) + 2px);
+  --radius-lg: calc(var(--radius) + 6px);
+  --radius-full: 9999px;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --reading-width: 720px;
+  --page-width: 1120px;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --ll-desk: #3d4a44;
+  --ll-desk-deep: #34403b;
+  --ll-paper: #ece6da;
+  --ll-paper-shade: #ddd4c4;
+  --ll-slip: #f3ede2;
+  --ll-card: #ebe4d4;
+  --ll-ink: #1f1b18;
+  --ll-ink-soft: #3a342f;
+  --ll-ink-muted: #524b44;
+  --ll-pencil-text: #5c564f;
+  --ll-pencil-mark: #8a8278;
+  --ll-marker: #e07a52;
+  --ll-red: #d04a3a;
+  --ll-green: #4a9a5c;
+  --ll-hi: #e8c84a;
+  --ll-focus: #5a8fd4;
+  --ll-shade: 20 16 12;
+}
