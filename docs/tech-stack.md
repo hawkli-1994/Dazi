@@ -4,22 +4,22 @@
 
 ## 总览
 
-| 层              | 选型                                                         | 一句话理由                                                     |
-| --------------- | ------------------------------------------------------------ | -------------------------------------------------------------- |
-| 桌面壳          | Electron（当前稳定版）                                       | Agent 内核是 Node 生态；需要托盘常驻、系统通知、本地文件与进程 |
-| Agent 内核      | `@earendil-works/pi-durable` + `pi-ai` + `chord`             | 对话、任务、文档都是持久化的；崩溃/重启后从检查点续跑          |
-| Agent 宿主进程  | Electron `utilityProcess`                                    | 内核独占存储、跑工具和调度，不阻塞主进程                       |
-| 存储            | pi-durable SQLite 存储（`node:sqlite`），单文件              | 业务状态与对话在同一原子提交里；无原生模块，无需 rebuild       |
-| 模型接入        | `pi-ai`                                                      | 多供应商统一接口、用量与成本统计                               |
-| 工具与执行环境  | `pi-durable/tools` + `NodeExecutionEnv`                      | 内置 read / write / edit / bash，按工作目录隔离                |
-| MCP             | `@modelcontextprotocol/sdk` 桥接为 extension + `tool-search` | 大量 MCP 工具延迟加载，不撑爆上下文                            |
-| 前端            | React + Vite + TypeScript                                    | 团队熟悉，生态成熟                                             |
-| 样式            | Tailwind CSS v4 + CSS 变量 token                             | 一套主题，浅色 / 深色                                          |
-| 组件            | shadcn/ui（Base UI）+ Streamdown + lucide-react              | 基础控件、Agent 展示、图标各有唯一来源                         |
-| 前端状态        | 订阅宿主推送的视图 + `useSyncExternalStore`                  | 真相在内核里，前端只做投影，不引入 Redux                       |
-| 包管理 / 运行时 | Bun（安装）+ Node（运行）                                    | 与内核 Node 要求一致                                           |
-| 质量            | oxlint、oxfmt、Vitest                                        | 快，足够用                                                     |
-| 打包            | electron-builder                                             | macOS / Windows 安装包与自动更新                               |
+| 层              | 选型                                                                                                   | 一句话理由                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| 桌面壳          | Electron（当前稳定版）                                                                                 | Agent 内核是 Node 生态；需要托盘常驻、系统通知、本地文件与进程 |
+| Agent 内核      | `@earendil-works/pi-durable` + `pi-ai` + `chord`                                                       | 对话、任务、文档都是持久化的；崩溃/重启后从检查点续跑          |
+| Agent 宿主进程  | Electron `utilityProcess`                                                                              | 内核独占存储、跑工具和调度，不阻塞主进程                       |
+| 存储            | pi-durable SQLite 存储（`node:sqlite`），单文件                                                        | 业务状态与对话在同一原子提交里；无原生模块，无需 rebuild       |
+| 模型接入        | `pi-ai`                                                                                                | 多供应商统一接口、用量与成本统计                               |
+| 工具与执行环境  | `pi-durable/tools` + `NodeExecutionEnv`                                                                | 内置 read / write / edit / bash，按工作目录隔离                |
+| MCP             | `@modelcontextprotocol/sdk` 桥接为 extension + `tool-search`                                           | 大量 MCP 工具延迟加载，不撑爆上下文                            |
+| 前端            | React + Vite + TypeScript                                                                              | 团队熟悉，生态成熟                                             |
+| 样式            | Tailwind CSS v4 + CSS 变量 token                                                                       | 一套主题，浅色 / 深色                                          |
+| 组件            | [Looseleaf](https://kevintngo.github.io/looseleaf/)（shadcn registry 源码）+ Streamdown + lucide-react | 纸面手绘控件与 Ink 引擎；组件 vendored 到 `src/components/ui`  |
+| 前端状态        | 订阅宿主推送的视图 + `useSyncExternalStore`                                                            | 真相在内核里，前端只做投影，不引入 Redux                       |
+| 包管理 / 运行时 | Bun（安装）+ Node（运行）                                                                              | 与内核 Node 要求一致                                           |
+| 质量            | oxlint、oxfmt、Vitest                                                                                  | 快，足够用                                                     |
+| 打包            | electron-builder                                                                                       | macOS / Windows 安装包与自动更新                               |
 
 所有依赖在初始化时**锁定精确版本**，`bun.lock` 变更视同代码评审。
 
@@ -80,7 +80,7 @@ Tauri 体积更小，但内核是 Node 包，需要 `node:sqlite`、子进程和
 
 The first runnable slice is the React renderer only. No Electron/Host/kernel package is installed until the separate Agent integration phase. The in-memory `DemoStore` exposes immutable structured projections through `useSyncExternalStore`; refresh resets all work and preferences. It is a presentation fixture, not a second durable store.
 
-Dependency purpose: React/Vite/TypeScript implement the renderer; Tailwind v4, Base UI, cva/clsx/tailwind-merge compose reusable controls and tokens; lucide supplies icons. Vitest, Playwright, oxlint and oxfmt verify state, interaction, visual captures and code quality. Versions are exact and Bun-lockfile backed. Message primitives use the ai-elements composition model without adding an AI SDK or provider to this UI-only stage.
+Dependency purpose: React/Vite/TypeScript implement the renderer; Tailwind v4, Looseleaf (Radix + Ink), cva/clsx/tailwind-merge compose controls and tokens; lucide supplies icons. Vitest, Playwright, oxlint and oxfmt verify state, interaction, visual captures and code quality. Versions are exact and Bun-lockfile backed. Message primitives use the ai-elements composition model without adding an AI SDK or provider to this UI-only stage.
 
 ## Agent 接入阶段
 

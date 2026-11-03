@@ -41,8 +41,9 @@ export function App() {
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const apply = () => {
-      document.documentElement.dataset.theme =
-        theme === Theme.System ? (media.matches ? Theme.Dark : Theme.Light) : theme;
+      const resolved = theme === Theme.System ? (media.matches ? Theme.Dark : Theme.Light) : theme;
+      document.documentElement.dataset.theme = resolved;
+      document.documentElement.classList.toggle('dark', resolved === Theme.Dark);
     };
     apply();
     media.addEventListener('change', apply);
@@ -59,8 +60,10 @@ export function App() {
     [Route.Settings, 'settings'],
   ] as const;
   return (
-    <div className={`app-shell${welcome ? ' is-welcome' : ''}`} data-testid="app-shell">
-      <div className="art" aria-hidden="true" />
+    <div
+      className={`app-shell ll-desk min-h-dvh bg-background text-foreground font-hand${welcome ? ' is-welcome' : ''}`}
+      data-testid="app-shell"
+    >
       <header className="header">
         <a className="brand" href="#/" aria-label={t(state.language, 'appName')}>
           <Orbit aria-hidden="true" />

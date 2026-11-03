@@ -1,5 +1,7 @@
 import { runtimeErrorText } from '../i18n/errors';
 import { useRef, useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '../../shared/components/ui/button';
 import { Title, Muted } from '../../shared/components/ui/typography';
 import { t, type Language } from '../i18n';
@@ -46,8 +48,7 @@ export function NewWork({ language, initialGoal }: { language: Language; initial
       >
         <div className="field">
           <label htmlFor="goal">{t(language, 'workGoal')}</label>
-          <textarea
-            className="input"
+          <Textarea
             id="goal"
             data-testid="new-work-goal"
             disabled={busy}
@@ -63,8 +64,7 @@ export function NewWork({ language, initialGoal }: { language: Language; initial
         </div>
         <div className="field">
           <label htmlFor="directory">{t(language, 'workDirectory')}</label>
-          <input
-            className="input"
+          <Input
             id="directory"
             data-testid="new-work-directory"
             disabled={busy}
